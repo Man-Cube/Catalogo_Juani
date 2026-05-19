@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Autoservicio Juani - Catálogo</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body { 
+            background-color: #f0f4f8; 
+            padding-bottom: 90px; /* Espacio para la barra flotante */
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Colores corporativos Juani */
+        .bg-juani-blue { background-color: #00388c; }
+        .text-juani-blue { color: #00388c; }
+        .bg-juani-red { background-color: #e53935; }
+        .text-juani-red { color: #e53935; }
+        
+        /* Ocultar barra de scroll en las categorías */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-gray-800 font-sans antialiased select-none">
+
+    <header class="bg-juani-blue sticky top-0 z-50 rounded-b-3xl shadow-lg pb-4">
+        <div class="flex flex-col items-center pt-4 pb-2">
+            <div class="flex items-center gap-2">
+                <span class="text-3xl">🏪</span>
+                <div class="flex flex-col">
+                    <h1 class="text-white text-xl font-extrabold leading-tight tracking-wide">Autoservicio Juani</h1>
+                    <span class="text-blue-200 text-[10px] font-semibold uppercase tracking-widest text-center">- Tu Súper de Barrio -</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 mt-2">
+            <div class="bg-white rounded-full flex items-center px-4 py-2.5 shadow-inner">
+                <span class="text-gray-400 text-lg mr-2">🔍</span>
+                <input type="text" placeholder="¿Qué buscás hoy, doña?" class="w-full bg-transparent outline-none text-sm text-gray-700 font-medium placeholder-gray-400">
+            </div>
+        </div>
+
+        <div class="flex gap-4 overflow-x-auto hide-scroll px-4 mt-5 pb-1">
+            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer">
+                <div class="w-14 h-14 bg-juani-red rounded-full flex items-center justify-center text-2xl shadow-md border-2 border-white ring-2 ring-red-400">
+                    🥫
+                </div>
+                <span class="text-white text-[10px] font-bold">Almacén</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-80 hover:opacity-100">
+                <div class="w-14 h-14 bg-blue-800 rounded-full flex items-center justify-center text-2xl shadow-inner border border-blue-700">
+                    🥩
+                </div>
+                <span class="text-blue-100 text-[10px] font-medium">Carnicería</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-80 hover:opacity-100">
+                <div class="w-14 h-14 bg-blue-800 rounded-full flex items-center justify-center text-2xl shadow-inner border border-blue-700">
+                    🧀
+                </div>
+                <span class="text-blue-100 text-[10px] font-medium">Fiambrería</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-80 hover:opacity-100">
+                <div class="w-14 h-14 bg-blue-800 rounded-full flex items-center justify-center text-2xl shadow-inner border border-blue-700">
+                    🥤
+                </div>
+                <span class="text-blue-100 text-[10px] font-medium">Bebidas</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-80 hover:opacity-100">
+                <div class="w-14 h-14 bg-blue-800 rounded-full flex items-center justify-center text-2xl shadow-inner border border-blue-700">
+                    🧹
+                </div>
+                <span class="text-blue-100 text-[10px] font-medium">Limpieza</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="p-4 flex flex-col gap-3 max-w-md mx-auto w-full" id="contenedor-productos">
+        </main>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-juani-blue rounded-t-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.15)] z-50 pb-safe">
+        <div class="max-w-md mx-auto w-full p-4">
+            <div class="flex justify-between items-end mb-3 px-1">
+                <span class="text-blue-200 text-sm font-semibold" id="cart-items">Total (0 items):</span>
+                <span class="text-white text-xl font-bold" id="cart-total">$0,00</span>
+            </div>
+            <button onclick="simularEnvio()" class="bg-juani-red w-full text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
+                <span class="text-xl">💬</span> Enviar Pedido por WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Simulamos lo que vendría de tu Google Sheets en el futuro
+        const productosDemo = [
+            { id: 1, nombre: "Yerba Playadito 500g", precio: 3200, emoji: "🧉", cantidad: 0 },
+            { id: 2, nombre: "Pan Felipe (Kilo)", precio: 1800, emoji: "🥖", cantidad: 0, oferta: "-10%" },
+            { id: 3, nombre: "Coca-Cola Sabor Original 2.25L", precio: 2950, emoji: "🥤", cantidad: 0 },
+            { id: 4, nombre: "Leche La Serenísima 1L", precio: 1350, emoji: "🥛", cantidad: 0 },
+            { id: 5, nombre: "Queso Cremoso Puyehue 500g", precio: 3800, emoji: "🧀", cantidad: 0 }
+        ];
+
+        function renderizarProductos() {
+            const contenedor = document.getElementById('contenedor-productos');
+            contenedor.innerHTML = '';
+
+            productosDemo.forEach((prod, index) => {
+                const cartelOferta = prod.oferta ? `<span class="bg-juani-red text-white text-[9px] font-bold px-1.5 py-0.5 rounded ml-2">${prod.oferta}</span>` : '';
+                
+                contenedor.innerHTML += `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex items-center gap-3">
+                    <div class="w-16 h-16 bg-gray-50 rounded-xl flex items-center justify-center text-3xl border border-gray-200 shrink-0">
+                        ${prod.emoji}
+                    </div>
+                    
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-sm font-bold text-gray-800 truncate">${prod.nombre} ${cartelOferta}</h3>
+                        <p class="text-[10px] text-gray-400 mb-1">Precio por unidad</p>
+                        <p class="text-lg font-extrabold text-juani-blue">$${prod.precio.toLocaleString('es-AR')}</p>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 bg-gray-50 p-1 rounded-full border border-gray-200 shrink-0">
+                        <button onclick="modificarCantidad(${index}, -1)" class="w-8 h-8 rounded-full ${prod.cantidad > 0 ? 'bg-juani-red text-white shadow' : 'bg-gray-200 text-gray-400'} flex items-center justify-center text-lg font-bold transition-colors">
+                            -
+                        </button>
+                        <span class="w-4 text-center font-bold text-gray-800 text-sm">${prod.cantidad}</span>
+                        <button onclick="modificarCantidad(${index}, 1)" class="w-8 h-8 rounded-full bg-juani-blue text-white shadow flex items-center justify-center text-lg font-bold active:scale-95 transition-transform">
+                            +
+                        </button>
+                    </div>
+                </div>`;
+            });
+            actualizarTotal();
+        }
+
+        function modificarCantidad(index, cambio) {
+            const nuevaCant = productosDemo[index].cantidad + cambio;
+            if(nuevaCant >= 0 && nuevaCant <= 99) {
+                productosDemo[index].cantidad = nuevaCant;
+                renderizarProductos(); // Re-dibuja para actualizar los números
+            }
+        }
+
+        function actualizarTotal() {
+            let totalPlata = 0;
+            let totalItems = 0;
+            
+            productosDemo.forEach(prod => {
+                totalPlata += (prod.precio * prod.cantidad);
+                totalItems += prod.cantidad;
+            });
+
+            document.getElementById('cart-items').innerText = `Total (${totalItems} items):`;
+            document.getElementById('cart-total').innerText = `$${totalPlata.toLocaleString('es-AR')}`;
+        }
+
+        function simularEnvio() {
+            const itemsComprados = productosDemo.filter(p => p.cantidad > 0);
+            if(itemsComprados.length === 0) {
+                alert("Doña, ¡el changuito está vacío! Agregue algo primero.");
+                return;
+            }
+            alert("¡Acá es donde se abre WhatsApp con el detalle del pedido! 🚀");
+        }
+
+        // Arrancamos la app
+        renderizarProductos();
+    </script>
+</body>
+</html>
