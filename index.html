@@ -5,21 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Autoservicio Juani - Catálogo</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00388c">
+    <link rel="apple-touch-icon" href="icon.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     
     <style>
         body { 
             background-color: #f0f4f8; 
-            padding-bottom: 90px; /* Espacio para la barra flotante */
+            padding-bottom: 110px; 
             -webkit-tap-highlight-color: transparent;
         }
-        /* Colores corporativos Juani */
         .bg-juani-blue { background-color: #00388c; }
         .text-juani-blue { color: #00388c; }
         .bg-juani-red { background-color: #e53935; }
         .text-juani-red { color: #e53935; }
         
-        /* Ocultar barra de scroll en las categorías */
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -40,134 +43,212 @@
         <div class="px-4 mt-2">
             <div class="bg-white rounded-full flex items-center px-4 py-2.5 shadow-inner">
                 <span class="text-gray-400 text-lg mr-2">🔍</span>
-                <input type="text" placeholder="¿Qué buscás hoy, doña?" class="w-full bg-transparent outline-none text-sm text-gray-700 font-medium placeholder-gray-400">
+                <input type="text" id="buscador-cliente" oninput="filtrarCatalogo()" placeholder="¿Qué buscás hoy, doña?" class="w-full bg-transparent outline-none text-sm text-gray-700 font-medium placeholder-gray-400">
             </div>
         </div>
 
-        <div class="flex gap-4 overflow-x-auto hide-scroll px-4 mt-5 pb-1">
-            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer">
-                <div class="w-14 h-14 bg-juani-red rounded-full flex items-center justify-center text-2xl shadow-md border-2 border-white ring-2 ring-red-400">
-                    🥫
-                </div>
-                <span class="text-white text-[10px] font-bold">Almacén</span>
-            </div>
-            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-80 hover:opacity-100">
-                <div class="w-14 h-14 bg-blue-800 rounded-full flex items-center justify-center text-2xl shadow-inner border border-blue-700">
-                    🥩
-                </div>
-                <span class="text-blue-100 text-[10px] font-medium">Carnicería</span>
-            </div>
-            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-80 hover:opacity-100">
-                <div class="w-14 h-14 bg-blue-800 rounded-full flex items-center justify-center text-2xl shadow-inner border border-blue-700">
-                    🧀
-                </div>
-                <span class="text-blue-100 text-[10px] font-medium">Fiambrería</span>
-            </div>
-            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-80 hover:opacity-100">
-                <div class="w-14 h-14 bg-blue-800 rounded-full flex items-center justify-center text-2xl shadow-inner border border-blue-700">
-                    🥤
-                </div>
+        <div class="flex gap-4 overflow-x-auto hide-scroll px-4 mt-5 pb-1" id="barra-categorias">
+            <button onclick="seleccionarCategoria('TODOS')" id="cat-TODOS" class="flex flex-col items-center gap-1 shrink-0 scale-105 transition-all">
+                <div class="w-12 h-12 bg-juani-red rounded-full flex items-center justify-center text-xl shadow-md border-2 border-white ring-2 ring-red-400">✨</div>
+                <span class="text-white text-[10px] font-bold">Todos</span>
+            </button>
+            <button onclick="seleccionarCategoria('Almacen')" id="cat-Almacen" class="flex flex-col items-center gap-1 shrink-0 opacity-70 transition-all">
+                <div class="w-12 h-12 bg-blue-800 rounded-full flex items-center justify-center text-xl shadow-inner border border-blue-700">🥫</div>
+                <span class="text-blue-100 text-[10px] font-medium">Almacén</span>
+            </button>
+            <button onclick="seleccionarCategoria('Bebidas')" id="cat-Bebidas" class="flex flex-col items-center gap-1 shrink-0 opacity-70 transition-all">
+                <div class="w-12 h-12 bg-blue-800 rounded-full flex items-center justify-center text-xl shadow-inner border border-blue-700">🥤</div>
                 <span class="text-blue-100 text-[10px] font-medium">Bebidas</span>
-            </div>
-            <div class="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-80 hover:opacity-100">
-                <div class="w-14 h-14 bg-blue-800 rounded-full flex items-center justify-center text-2xl shadow-inner border border-blue-700">
-                    🧹
-                </div>
+            </button>
+            <button onclick="seleccionarCategoria('Fiambreria')" id="cat-Fiambreria" class="flex flex-col items-center gap-1 shrink-0 opacity-70 transition-all">
+                <div class="w-12 h-12 bg-blue-800 rounded-full flex items-center justify-center text-xl shadow-inner border border-blue-700">🧀</div>
+                <span class="text-blue-100 text-[10px] font-medium">Fiambrería</span>
+            </button>
+            <button onclick="seleccionarCategoria('Limpieza')" id="cat-Limpieza" class="flex flex-col items-center gap-1 shrink-0 opacity-70 transition-all">
+                <div class="w-12 h-12 bg-blue-800 rounded-full flex items-center justify-center text-xl shadow-inner border border-blue-700">🧹</div>
                 <span class="text-blue-100 text-[10px] font-medium">Limpieza</span>
-            </div>
+            </button>
         </div>
     </header>
 
-    <main class="p-4 flex flex-col gap-3 max-w-md mx-auto w-full" id="contenedor-productos">
+    <div id="loading-catalogo" class="p-10 text-center text-xs font-bold text-gray-400 flex flex-col items-center gap-2">
+        <span class="text-3xl animate-spin">⏳</span> Cargando las ofertas del día...
+    </div>
+
+    <main class="p-4 flex flex-col gap-3 max-w-md mx-auto w-full hidden" id="contenedor-productos">
         </main>
 
     <div class="fixed bottom-0 left-0 right-0 bg-juani-blue rounded-t-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.15)] z-50 pb-safe">
         <div class="max-w-md mx-auto w-full p-4">
             <div class="flex justify-between items-end mb-3 px-1">
-                <span class="text-blue-200 text-sm font-semibold" id="cart-items">Total (0 items):</span>
+                <span class="text-blue-200 text-sm font-semibold" id="cart-items">Total (0 productos):</span>
                 <span class="text-white text-xl font-bold" id="cart-total">$0,00</span>
             </div>
-            <button onclick="simularEnvio()" class="bg-juani-red w-full text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
+            <button onclick="dispararPedidoWhatsApp()" class="bg-juani-red w-full text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
                 <span class="text-xl">💬</span> Enviar Pedido por WhatsApp
             </button>
         </div>
     </div>
 
     <script>
-        // Simulamos lo que vendría de tu Google Sheets en el futuro
-        const productosDemo = [
-            { id: 1, nombre: "Yerba Playadito 500g", precio: 3200, emoji: "🧉", cantidad: 0 },
-            { id: 2, nombre: "Pan Felipe (Kilo)", precio: 1800, emoji: "🥖", cantidad: 0, oferta: "-10%" },
-            { id: 3, nombre: "Coca-Cola Sabor Original 2.25L", precio: 2950, emoji: "🥤", cantidad: 0 },
-            { id: 4, nombre: "Leche La Serenísima 1L", precio: 1350, emoji: "🥛", cantidad: 0 },
-            { id: 5, nombre: "Queso Cremoso Puyehue 500g", precio: 3800, emoji: "🧀", cantidad: 0 }
-        ];
+        // REGISTRO SERVICE WORKER (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(e => {}); });
+        }
 
-        function renderizarProductos() {
+        // TU LINK DE GOOGLE SHEETS EN VIVO REY
+        const URL_CSV_PLANILLA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6vRsDn1Xlsgb0Phw2y26b9ZSWM7ZfYf933MyKKm5Yncxihx90-vqhCHI2OukHoEVWcb2T4Wpi0RsX/pub?output=csv";
+
+        let BD_PRODUCTOS = [];
+        let categoriaSeleccionada = "TODOS";
+
+        // Cargar los datos desde Google Sheets al iniciar
+        async function inicializarCatalogo() {
+            try {
+                const respuesta = await fetch(URL_CSV_PLANILLA);
+                const textoCSV = await respuesta.text();
+                
+                // Procesamos el CSV de forma segura
+                Papa.parse(textoCSV, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        BD_PRODUCTOS = results.data.map((item, index) => ({
+                            id: index,
+                            codigo: item.codigo ? item.codigo.trim() : '',
+                            nombre: item.nombre ? item.nombre.trim() : 'Producto sin nombre',
+                            categoria: item.categoria ? item.categoria.trim() : 'Otros',
+                            precio: item.precio ? parseFloat(item.precio.replace(/[^0-9.-]+/g,"")) : 0,
+                            imagen: item.imagen ? item.imagen.trim() : '',
+                            cantidad: 0
+                        }));
+                        
+                        document.getElementById('loading-catalogo').classList.add('hidden');
+                        document.getElementById('contenedor-productos').classList.remove('hidden');
+                        renderizarCatalogo();
+                    }
+                });
+            } catch (error) {
+                document.getElementById('loading-catalogo').innerText = "❌ Error de conexión al cargar catálogo.";
+            }
+        }
+
+        function renderizarCatalogo() {
             const contenedor = document.getElementById('contenedor-productos');
             contenedor.innerHTML = '';
 
-            productosDemo.forEach((prod, index) => {
-                const cartelOferta = prod.oferta ? `<span class="bg-juani-red text-white text-[9px] font-bold px-1.5 py-0.5 rounded ml-2">${prod.oferta}</span>` : '';
-                
+            const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
+
+            // Filtramos la lista según la categoría y lo que se escriba
+            const productosFiltrados = BD_PRODUCTOS.filter(p => {
+                const coincideCat = (categoriaSeleccionada === "TODOS" || p.categoria.toLowerCase() === categoriaSeleccionada.toLowerCase());
+                const coincideBusqueda = p.nombre.toLowerCase().includes(busqueda) || p.codigo.includes(busqueda);
+                return coincideCat && coincideBusqueda;
+            });
+
+            if(productosFiltrados.length === 0) {
+                contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No encontramos productos en esta sección, doña.</p>`;
+                return;
+            }
+
+            productosFiltrados.forEach((prod) => {
+                // Si hay link de imagen se muestra, sino ponemos un emoji por defecto
+                const elementoImagen = prod.imagen ? 
+                    `<img src="${prod.imagen}" class="w-16 h-16 object-cover rounded-xl border border-gray-100 shrink-0">` :
+                    `<div class="w-16 h-16 bg-gray-50 rounded-xl flex items-center justify-center text-2xl border border-gray-200 shrink-0">📦</div>`;
+
                 contenedor.innerHTML += `
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex items-center gap-3">
-                    <div class="w-16 h-16 bg-gray-50 rounded-xl flex items-center justify-center text-3xl border border-gray-200 shrink-0">
-                        ${prod.emoji}
-                    </div>
-                    
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex items-center gap-3 animate-fade-in">
+                    ${elementoImagen}
                     <div class="flex-1 min-w-0">
-                        <h3 class="text-sm font-bold text-gray-800 truncate">${prod.nombre} ${cartelOferta}</h3>
-                        <p class="text-[10px] text-gray-400 mb-1">Precio por unidad</p>
-                        <p class="text-lg font-extrabold text-juani-blue">$${prod.precio.toLocaleString('es-AR')}</p>
+                        <h3 class="text-sm font-bold text-gray-800 truncate uppercase">${prod.nombre}</h3>
+                        <p class="text-[9px] text-gray-400 mb-0.5">Categoría: ${prod.categoria}</p>
+                        <p class="text-base font-extrabold text-juani-blue">$${prod.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
                     </div>
-                    
                     <div class="flex items-center gap-2 bg-gray-50 p-1 rounded-full border border-gray-200 shrink-0">
-                        <button onclick="modificarCantidad(${index}, -1)" class="w-8 h-8 rounded-full ${prod.cantidad > 0 ? 'bg-juani-red text-white shadow' : 'bg-gray-200 text-gray-400'} flex items-center justify-center text-lg font-bold transition-colors">
-                            -
-                        </button>
-                        <span class="w-4 text-center font-bold text-gray-800 text-sm">${prod.cantidad}</span>
-                        <button onclick="modificarCantidad(${index}, 1)" class="w-8 h-8 rounded-full bg-juani-blue text-white shadow flex items-center justify-center text-lg font-bold active:scale-95 transition-transform">
-                            +
-                        </button>
+                        <button onclick="cambiarCantidad(${prod.id}, -1)" class="w-8 h-8 rounded-full ${prod.cantidad > 0 ? 'bg-juani-red text-white shadow' : 'bg-gray-200 text-gray-400'} flex items-center justify-center text-base font-bold transition-colors">-</button>
+                        <span class="w-4 text-center font-bold text-gray-800 text-xs">${prod.cantidad}</span>
+                        <button onclick="cambiarCantidad(${prod.id}, 1)" class="w-8 h-8 rounded-full bg-juani-blue text-white shadow flex items-center justify-center text-base font-bold active:scale-95 transition-transform">+</button>
                     </div>
                 </div>`;
             });
-            actualizarTotal();
+            
+            actualizarIndicadoresCarrito();
         }
 
-        function modificarCantidad(index, cambio) {
-            const nuevaCant = productosDemo[index].cantidad + cambio;
-            if(nuevaCant >= 0 && nuevaCant <= 99) {
-                productosDemo[index].cantidad = nuevaCant;
-                renderizarProductos(); // Re-dibuja para actualizar los números
+        function cambiarCantidad(id, cambio) {
+            const index = BD_PRODUCTOS.findIndex(p => p.id === id);
+            if(index !== -1) {
+                const nuevaCant = BD_PRODUCTOS[index].cantidad + cambio;
+                if(nuevaCant >= 0 && nuevaCant <= 99) {
+                    BD_PRODUCTOS[index].cantidad = nuevaCant;
+                    renderizarCatalogo();
+                }
             }
         }
 
-        function actualizarTotal() {
-            let totalPlata = 0;
-            let totalItems = 0;
+        function seleccionarCategoria(cat) {
+            categoriaSeleccionada = cat;
             
-            productosDemo.forEach(prod => {
-                totalPlata += (prod.precio * prod.cantidad);
-                totalItems += prod.cantidad;
-            });
-
-            document.getElementById('cart-items').innerText = `Total (${totalItems} items):`;
-            document.getElementById('cart-total').innerText = `$${totalPlata.toLocaleString('es-AR')}`;
+            // Estilos visuales de botones para saber cuál está seleccionado
+            const botones = document.getElementById('barra-categorias').getElementsByTagName('button');
+            for (let btn of botones) {
+                if(btn.id === `cat-${cat}`) {
+                    btn.classList.remove('opacity-70');
+                    btn.classList.add('scale-105', 'opacity-100');
+                } else {
+                    btn.classList.remove('scale-105', 'opacity-100');
+                    btn.classList.add('opacity-70');
+                }
+            }
+            renderizarCatalogo();
         }
 
-        function simularEnvio() {
-            const itemsComprados = productosDemo.filter(p => p.cantidad > 0);
-            if(itemsComprados.length === 0) {
-                alert("Doña, ¡el changuito está vacío! Agregue algo primero.");
+        function filtrarCatalogo() {
+            renderizarCatalogo();
+        }
+
+        function actualizarIndicadoresCarrito() {
+            let totalDinero = 0;
+            let totalUnidades = 0;
+            BD_PRODUCTOS.forEach(p => {
+                totalDinero += (p.precio * p.cantidad);
+                totalUnidades += p.cantidad;
+            });
+            document.getElementById('cart-items').innerText = `Total (${totalUnidades} productos):`;
+            document.getElementById('cart-total').innerText = `$${totalDinero.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+        }
+
+        function dispararPedidoWhatsApp() {
+            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
+            if(carrito.length === 0) {
+                alert("Doña, el changuito está vacío. Sume algún artículo antes de enviar.");
                 return;
             }
-            alert("¡Acá es donde se abre WhatsApp con el detalle del pedido! 🚀");
+
+            // Armamos el mensaje pulido
+            let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`;
+            let granTotal = 0;
+
+            carrito.forEach(item => {
+                let sub = item.precio * item.cantidad;
+                granTotal += sub;
+                mensaje += `📦 *${item.nombre.toUpperCase()}*\n`;
+                mensaje += `   ${item.cantidad} x $${item.precio.toLocaleString('es-AR')} = *$${sub.toLocaleString('es-AR')}*\n\n`;
+            });
+
+            mensaje += `Total estimado a pagar: *$${granTotal.toLocaleString('es-AR')}*\n\n`;
+            mensaje += `¿Me confirmarían si tienen stock de todo así coordinamos el envío? ¡Muchas gracias!`;
+
+            // CAMBIÁ ACÁ EL NÚMERO DE TU LOCAL REY (USÁ EL FORMATO INTERNACIONAL SIN EL +)
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
+            
+            const linkWhatsApp = `https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`;
+            window.open(linkWhatsApp, '_blank');
         }
 
-        // Arrancamos la app
-        renderizarProductos();
+        // Fuego inicial
+        inicializarCatalogo();
     </script>
 </body>
 </html>
