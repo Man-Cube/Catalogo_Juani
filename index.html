@@ -139,13 +139,52 @@
 
             const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
 
-            // Filtramos la lista según la categoría y lo que se escriba
+            // Filtramos la lista
             const productosFiltrados = BD_PRODUCTOS.filter(p => {
                 const coincideCat = (categoriaSeleccionada === "TODOS" || p.categoria.toLowerCase() === categoriaSeleccionada.toLowerCase());
                 const coincideBusqueda = p.nombre.toLowerCase().includes(busqueda) || p.codigo.includes(busqueda);
                 return coincideCat && coincideBusqueda;
             });
 
+            // Si no hay resultados
+            if(productosFiltrados.length === 0) {
+                contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full"; // Volvemos a columna para el msj de error
+                contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No encontramos productos en esta sección, doña.</p>`;
+                return;
+            }
+
+            // MAGIA ACÁ: Le decimos al contenedor que se convierta en una grilla de 2 columnas (grid-cols-2)
+            contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full hidden";
+
+            productosFiltrados.forEach((prod) => {
+                // Foto o cajita por defecto
+                const elementoImagen = prod.imagen ? 
+                    `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
+                    `<div class="text-4xl text-gray-300">📦</div>`;
+
+                contenedor.innerHTML += `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 flex flex-col relative animate-fade-in h-full">
+                    
+                    <div class="w-full aspect-square bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center mb-2 p-2 relative overflow-hidden shrink-0">
+                        ${elementoImagen}
+                        ${prod.cantidad > 0 ? `<div class="absolute top-1 right-1 bg-juani-blue text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm">${prod.cantidad}</div>` : ''}
+                    </div>
+                    
+                    <div class="flex flex-col flex-1">
+                        <h3 class="text-[11px] leading-tight font-bold text-gray-800 line-clamp-2 min-h-[28px] mb-1">${prod.nombre.toUpperCase()}</h3>
+                        <p class="text-[15px] font-extrabold text-juani-blue mt-auto mb-2">$${prod.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
+                    </div>
+                    
+                    <div class="flex items-center justify-between bg-gray-50 p-1 rounded-full border border-gray-200 w-full mt-auto shrink-0">
+                        <button onclick="cambiarCantidad(${prod.id}, -1)" class="w-7 h-7 rounded-full ${prod.cantidad > 0 ? 'bg-juani-red text-white shadow' : 'bg-gray-200 text-gray-400'} flex items-center justify-center text-lg font-bold transition-colors leading-none pb-0.5">-</button>
+                        <span class="font-bold text-gray-800 text-xs w-4 text-center">${prod.cantidad}</span>
+                        <button onclick="cambiarCantidad(${prod.id}, 1)" class="w-7 h-7 rounded-full bg-juani-blue text-white shadow flex items-center justify-center text-lg font-bold active:scale-95 transition-transform leading-none pb-0.5">+</button>
+                    </div>
+                </div>`;
+            });
+            
+            actualizarIndicadoresCarrito();
+        }
             if(productosFiltrados.length === 0) {
                 contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No encontramos productos en esta sección, doña.</p>`;
                 return;
