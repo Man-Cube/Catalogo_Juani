@@ -42,9 +42,8 @@
 </head>
 <body class="text-gray-800 font-sans antialiased select-none pb-10">
 
-    <button onclick="abrirPantallaCarrito()" id="btn-carrito-flotante" class="fixed top-4 right-4 z-[60] bg-white rounded-full p-3 shadow-lg border border-gray-100 active:scale-95 transition-transform">
-        <span class="text-2xl">🛒</span>
-        <span id="badge-carrito" class="absolute -top-1 -right-1 bg-juani-red text-white text-[11px] font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md transform transition-transform hidden">0</span>
+    <button onclick="abrirPantallaCarrito()" id="btn-carrito-flotante" class="fixed top-4 right-4 z-[60] active:scale-95 transition-transform p-3">
+        <span class="text-3xl">🛒</span> <span id="badge-carrito" class="absolute -top-1 -right-1 bg-juani-red text-white text-[11px] font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md transform transition-transform hidden border-2 border-white/50">0</span>
     </button>
 
     <div id="pantalla-catalogo" class="block">
