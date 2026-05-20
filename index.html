@@ -148,7 +148,7 @@
     </div>
 
     <div id="modal-aviso-precio" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4 transition-opacity">
-        <div class="bg-white rounded-3xl w-full max-sm mx-auto flex flex-col items-center p-6 text-center animate-pop shadow-2xl">
+        <div class="bg-white rounded-3xl w-full max-w-sm mx-auto flex flex-col items-center p-6 text-center animate-pop shadow-2xl">
             <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center text-3xl mb-4 border-4 border-white shadow-sm">⚠️</div>
             <h2 class="text-xl font-black text-gray-800 mb-2 leading-tight">Precios Actualizados</h2>
             <p class="text-sm text-gray-500 mb-6 leading-relaxed">Doña, algunos productos cambiaron de precio en el local mientras armaba el changuito. Le actualizamos el total para que lo revise.</p>
@@ -438,8 +438,7 @@
             }
         }
 
-        // ====== SEGURIDAD Y WHASTAPP (VALIDACIÓN PURGADA) ======
-        // ====== SEGURIDAD Y WHASTAPP (VERSIÓN GOOGLE SHEETS BLINDADA) ======
+        // ====== SEGURIDAD Y WHASTAPP (VERSIÓN GOOGLE SHEETS DEFINITIVA) ======
         async function dispararPedidoWhatsApp() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
@@ -450,7 +449,6 @@
             btn.disabled = true;
 
             try {
-                // Le pedimos a Google Sheets el archivo más fresco, saltando la memoria caché
                 const urlFresca = URL_CSV_PLANILLA + "&t=" + new Date().getTime();
                 const respuesta = await fetch(urlFresca);
                 const textoCSV = await respuesta.text();
@@ -462,18 +460,16 @@
                         const datosFrescos = results.data;
                         
                         carrito.forEach(itemChango => {
-                            // Buscamos el código exacto, afeitando espacios por las dudas
                             const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
                             
                             if(itemFresco && itemFresco.precio) {
-                                // MAGIA PARA PESOS ARGENTINOS: Limpiamos los puntos y comas
-                                let strPrecio = String(itemFresco.precio).replace(/\$|\s/g, ''); // Saca el $ y espacios
-                                strPrecio = strPrecio.replace(/\./g, ''); // Saca los puntos de mil (1.500 -> 1500)
-                                strPrecio = strPrecio.replace(/,/g, '.'); // Cambia coma por punto decimal (1500,50 -> 1500.50)
+                                // Traductor perfecto para formato de pesos argentinos
+                                let strPrecio = String(itemFresco.precio).replace(/\$|\s/g, ''); 
+                                strPrecio = strPrecio.replace(/\./g, ''); 
+                                strPrecio = strPrecio.replace(/,/g, '.'); 
                                 
                                 const precioFresco = parseFloat(strPrecio);
                                 
-                                // Si el precio es válido y distinto al del changuito, lo actualiza
                                 if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
                                     itemChango.precio = precioFresco;
                                     huboCambios = true;
@@ -485,33 +481,14 @@
                         btn.disabled = false;
 
                         if(huboCambios) {
-                            // Si cambió, actualiza la pantalla y muestra el cartel
                             renderizarListaCheckout(); 
-                            actualizarIndicadoresCarrito();
+                            actualizarIconoCarritoFlotante(); // <- LA FUNCIÓN CORRECTA PARA EL CHANGUITO NUEVO
                             document.getElementById('modal-aviso-precio').classList.remove('hidden');
                         } else {
-                            // Si está todo OK, manda el WhatsApp
                             enviarWhatsAppFinal(carrito);
                         }
                     }
                 });
-            } catch (error) {
-                // Si la doña se quedó sin internet justo ahí, mandamos igual para asegurar la venta
-                btn.innerHTML = textoOriginal;
-                btn.disabled = false;
-                enviarWhatsAppFinal(carrito);
-            }
-        }
-                btn.innerHTML = textoOriginal;
-                btn.disabled = false;
-
-                if(huboCambios) {
-                    // SE ELIMINÓ LA FUNCIÓN INEXISTENTE QUE HACÍA FALLAR EL MODAL
-                    renderizarListaCheckout(); 
-                    document.getElementById('modal-aviso-precio').classList.remove('hidden');
-                } else {
-                    enviarWhatsAppFinal(carrito);
-                }
             } catch (error) {
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
@@ -532,7 +509,7 @@
             });
             mensaje += `Total estimado a pagar: *$${granTotal.toLocaleString('es-AR')}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; // ¡Ponele tu número acá!
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
