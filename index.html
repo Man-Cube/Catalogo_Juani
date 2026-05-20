@@ -167,6 +167,9 @@
         let categoriaSeleccionada = "TODOS";
         let productoAbierto = null;
         let cantTemporalModal = 1;
+        
+        // EL NUEVO ESCUDO: Esta variable guarda el sello de validación
+        let preciosVerificados = false; 
 
         async function inicializarCatalogo() {
             try {
@@ -248,7 +251,6 @@
 
         function filtrarCatalogo() { renderizarCatalogo(); }
 
-        // ====== LÓGICA DEL MODAL ======
         function abrirModalProducto(id) {
             productoAbierto = BD_PRODUCTOS.find(p => p.id === id);
             if(!productoAbierto) return;
@@ -297,11 +299,14 @@
         function confirmarAgregadoAlChango() {
             productoAbierto.cantidad = cantTemporalModal;
             if(cantTemporalModal > 0) { volarAlCarrito(); }
+            
+            // Si agrega algo nuevo, rompemos el sello de verificación para que vuelva a controlar
+            preciosVerificados = false; 
+            
             cerrarModalProducto();
             renderizarCatalogo();
         }
 
-        // ====== ANIMACIÓN ======
         function volarAlCarrito() {
             const imgOrigen = document.getElementById('img-vuelo-origen');
             const iconDestino = document.getElementById('btn-carrito-flotante');
@@ -344,7 +349,6 @@
             }, 600);
         }
 
-        // ====== CHANGUITO Y CHECKOUT ======
         function actualizarIconoCarritoFlotante() {
             let totalUnidades = 0;
             BD_PRODUCTOS.forEach(p => totalUnidades += p.cantidad);
@@ -375,6 +379,7 @@
         function vaciarCarrito() {
             if(confirm("¿Seguro que querés vaciar todo el changuito, doña?")) {
                 BD_PRODUCTOS.forEach(p => p.cantidad = 0);
+                preciosVerificados = false; // Rompe el sello
                 renderizarListaCheckout();
                 actualizarIconoCarritoFlotante();
             }
@@ -432,20 +437,28 @@
                 const nuevaCant = BD_PRODUCTOS[index].cantidad + cambio;
                 if(nuevaCant >= 0 && nuevaCant <= 99) {
                     BD_PRODUCTOS[index].cantidad = nuevaCant;
+                    preciosVerificados = false; // Rompe el sello si la doña mueve cantidades
                     renderizarListaCheckout(); 
                     actualizarIconoCarritoFlotante();
                 }
             }
         }
 
-        // ====== SEGURIDAD Y WHASTAPP (VERSIÓN GOOGLE SHEETS DEFINITIVA) ======
+        // ====== SEGURIDAD Y WHASTAPP (BLINDADO CON SELLO DE CONFIANZA) ======
         async function dispararPedidoWhatsApp() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
 
+            // EL SELLO: Si ya revisó, salta todo y lo manda de una sin marearse con servidores
+            if (preciosVerificados) {
+                enviarWhatsAppFinal(carrito);
+                preciosVerificados = false; // Limpia el sello para la próxima compra
+                return;
+            }
+
             const btn = document.getElementById('btn-confirmar-pedido');
             const textoOriginal = btn.innerHTML;
-            btn.innerHTML = `<span class="animate-spin text-xl inline-block mr-2">⏳</span> Verificando precios...`;
+            btn.innerHTML = `<span class="animate-spin text-xl inline-block mr-2">⏳</span> Verificando...`;
             btn.disabled = true;
 
             try {
@@ -463,7 +476,6 @@
                             const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
                             
                             if(itemFresco && itemFresco.precio) {
-                                // Traductor perfecto para formato de pesos argentinos
                                 let strPrecio = String(itemFresco.precio).replace(/\$|\s/g, ''); 
                                 strPrecio = strPrecio.replace(/\./g, ''); 
                                 strPrecio = strPrecio.replace(/,/g, '.'); 
@@ -481,8 +493,9 @@
                         btn.disabled = false;
 
                         if(huboCambios) {
+                            preciosVerificados = true; // PONE EL SELLO para que la próxima vez pase de largo
                             renderizarListaCheckout(); 
-                            actualizarIconoCarritoFlotante(); // <- LA FUNCIÓN CORRECTA PARA EL CHANGUITO NUEVO
+                            actualizarIconoCarritoFlotante(); 
                             document.getElementById('modal-aviso-precio').classList.remove('hidden');
                         } else {
                             enviarWhatsAppFinal(carrito);
@@ -509,7 +522,7 @@
             });
             mensaje += `Total estimado a pagar: *$${granTotal.toLocaleString('es-AR')}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; // ¡Ponele tu número acá!
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; // PONÉ TU NÚMERO DE WHATSAPP ACÁ
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
