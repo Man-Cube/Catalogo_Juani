@@ -148,7 +148,7 @@
     </div>
 
     <div id="modal-aviso-precio" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4 transition-opacity">
-        <div class="bg-white rounded-3xl w-full max-w-sm mx-auto flex flex-col items-center p-6 text-center animate-pop shadow-2xl">
+        <div class="bg-white rounded-3xl w-full max-sm mx-auto flex flex-col items-center p-6 text-center animate-pop shadow-2xl">
             <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center text-3xl mb-4 border-4 border-white shadow-sm">⚠️</div>
             <h2 class="text-xl font-black text-gray-800 mb-2 leading-tight">Precios Actualizados</h2>
             <p class="text-sm text-gray-500 mb-6 leading-relaxed">Doña, algunos productos cambiaron de precio en el local mientras armaba el changuito. Le actualizamos el total para que lo revise.</p>
@@ -438,7 +438,7 @@
             }
         }
 
-        // ====== SEGURIDAD Y WHASTAPP (VERSIÓN CON SCANNTECH EN VIVO) ======
+        // ====== SEGURIDAD Y WHASTAPP (VALIDACIÓN PURGADA) ======
         async function dispararPedidoWhatsApp() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
@@ -470,15 +470,15 @@
                                 huboCambios = true;
                             }
                         }
-                    } catch(e) { } // Ignora si falla la conexión y usa el precio viejo
+                    } catch(e) { } 
                 }));
 
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
 
                 if(huboCambios) {
+                    // SE ELIMINÓ LA FUNCIÓN INEXISTENTE QUE HACÍA FALLAR EL MODAL
                     renderizarListaCheckout(); 
-                    actualizarIndicadoresCarrito();
                     document.getElementById('modal-aviso-precio').classList.remove('hidden');
                 } else {
                     enviarWhatsAppFinal(carrito);
@@ -490,7 +490,6 @@
             }
         }
 
-        // Función para cerrar el cartelito amarillo
         function cerrarAvisoPrecio() {
             document.getElementById('modal-aviso-precio').classList.add('hidden');
         }
@@ -504,11 +503,10 @@
             });
             mensaje += `Total estimado a pagar: *$${granTotal.toLocaleString('es-AR')}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; // PONÉ TU NÚMERO DE WPP ACÁ REY
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
-        // ¡EL ARRANQUE DEL MOTOR! (Seguro borraste esto sin querer en el copiado anterior)
         inicializarCatalogo();
     </script>
 </body>
