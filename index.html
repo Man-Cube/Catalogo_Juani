@@ -455,6 +455,7 @@
         }
 
         // ====== SEGURIDAD Y ENVÍO WHASTAPP ======
+        // ====== SEGURIDAD Y ENVÍO WHASTAPP ======
         async function dispararPedidoWhatsApp() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
@@ -465,26 +466,54 @@
             btn.disabled = true;
 
             try {
-                const urlFresca = URL_CSV_PLANILLA + "&t=" + new Date().getTime();
-                const respuesta = await fetch(urlFresca);
-                const textoCSV = await respuesta.text();
                 let huboCambios = false;
 
-                Papa.parse(textoCSV, {
-                    header: true, skipEmptyLines: true,
-                    complete: function(results) {
-                        const datosFrescos = results.data;
+                // 🌟 NUEVO MOTOR DE VALIDACIÓN: Habla directo con Scanntech vía Render 🌟
+                await Promise.all(carrito.map(async (itemChango) => {
+                    try {
+                        // Cronómetro de 5 segundos por si Render está dormido
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                        // Le preguntamos el precio real a tu servidor puente
+                        const urlRender = `https://puente-juani.onrender.com/buscar/${itemChango.codigo}`;
+                        const res = await fetch(urlRender, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+
+                        const data = await res.json();
                         
-                        carrito.forEach(itemChango => {
-                            const itemFresco = datosFrescos.find(f => f.codigo === itemChango.codigo);
-                            if(itemFresco && itemFresco.precio) {
-                                const precioFresco = parseFloat(itemFresco.precio.replace(/[^0-9.-]+/g,""));
-                                if(precioFresco !== itemChango.precio) {
-                                    itemChango.precio = precioFresco;
-                                    huboCambios = true;
-                                }
+                        // Si Scanntech responde con éxito, comparamos
+                        if(data.exito && data.articulo && data.articulo.venta && data.articulo.venta.valor) {
+                            const precioRealScanntech = parseFloat(data.articulo.venta.valor);
+                            
+                            // Si el precio de caja es distinto al del chango, lo actualizamos
+                            if(precioRealScanntech !== itemChango.precio) {
+                                itemChango.precio = precioRealScanntech;
+                                huboCambios = true;
                             }
-                        });
+                        }
+                    } catch(e) {
+                        // Si falla (ej: sin internet o Render tardó mucho), sigue de largo sin trabar la compra
+                    }
+                }));
+
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+
+                if(huboCambios) {
+                    // Re-dibujamos el carrito y tiramos el aviso
+                    renderizarListaCheckout(); 
+                    actualizarIndicadoresCarrito();
+                    document.getElementById('modal-aviso-precio').classList.remove('hidden');
+                } else {
+                    enviarWhatsAppFinal(carrito);
+                }
+            } catch (error) {
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+                enviarWhatsAppFinal(carrito);
+            }
+        }
 
                         btn.innerHTML = textoOriginal;
                         btn.disabled = false;
