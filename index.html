@@ -456,10 +456,66 @@
             }
         }
 
-        function dispararPedidoWhatsApp() {
+        async function dispararPedidoWhatsApp() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
 
+            // 1. Agarramos el botón y le ponemos un cartel de carga
+            const btn = document.querySelector('#pantalla-carrito button.bg-juani-red');
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = `<span class="animate-spin text-xl inline-block mr-2">⏳</span> Verificando precios...`;
+            btn.disabled = true;
+
+            try {
+                // 2. Trucazo: le agregamos la hora al link para obligar a Google a darnos el archivo fresco, sin memoria caché
+                const urlFresca = URL_CSV_PLANILLA + "&t=" + new Date().getTime();
+                const respuesta = await fetch(urlFresca);
+                const textoCSV = await respuesta.text();
+                let huboCambios = false;
+
+                Papa.parse(textoCSV, {
+                    header: true, skipEmptyLines: true,
+                    complete: function(results) {
+                        const datosFrescos = results.data;
+                        
+                        // 3. Revisamos si cambió algún precio de lo que lleva en el chango
+                        carrito.forEach(itemChango => {
+                            const itemFresco = datosFrescos.find(f => f.codigo === itemChango.codigo);
+                            if(itemFresco && itemFresco.precio) {
+                                const precioFresco = parseFloat(itemFresco.precio.replace(/[^0-9.-]+/g,""));
+                                if(precioFresco !== itemChango.precio) {
+                                    // 🚨 ¡ENCONTRAMOS UN CAMBIO! Lo actualizamos silenciosamente
+                                    itemChango.precio = precioFresco;
+                                    huboCambios = true;
+                                }
+                            }
+                        });
+
+                        // Restauramos el botón
+                        btn.innerHTML = textoOriginal;
+                        btn.disabled = false;
+
+                        if(huboCambios) {
+                            // 4. Si hubo cambios, re-dibujamos el carrito y le avisamos
+                            renderizarListaCheckout(); 
+                            actualizarIndicadoresCarrito();
+                            alert("⚠️ Atención doña: Algunos precios se actualizaron en el local mientras armaba el pedido. Por favor, revise el nuevo total antes de confirmar.");
+                        } else {
+                            // 5. Si no hubo cambios, va directo a WhatsApp
+                            enviarWhatsAppFinal(carrito);
+                        }
+                    }
+                });
+            } catch (error) {
+                // Si justo se quedó sin internet, mandamos el pedido con los precios que tenía para no perder la venta
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+                enviarWhatsAppFinal(carrito);
+            }
+        }
+
+        // Función auxiliar que arma el texto y abre WhatsApp
+        function enviarWhatsAppFinal(carrito) {
             let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`;
             let granTotal = 0;
             carrito.forEach(item => {
@@ -468,7 +524,7 @@
             });
             mensaje += `Total estimado a pagar: *$${granTotal.toLocaleString('es-AR')}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
+            const NUMERO_TELEFONO_JUANI = "5491100000000"; // Acordate de poner tu número acá
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
