@@ -439,6 +439,7 @@
         }
 
         // ====== SEGURIDAD Y WHASTAPP (VALIDACIÓN PURGADA) ======
+        // ====== SEGURIDAD Y WHASTAPP (VERSIÓN GOOGLE SHEETS BLINDADA) ======
         async function dispararPedidoWhatsApp() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
@@ -449,30 +450,58 @@
             btn.disabled = true;
 
             try {
+                // Le pedimos a Google Sheets el archivo más fresco, saltando la memoria caché
+                const urlFresca = URL_CSV_PLANILLA + "&t=" + new Date().getTime();
+                const respuesta = await fetch(urlFresca);
+                const textoCSV = await respuesta.text();
                 let huboCambios = false;
 
-                // Consulta a tu servidor de Render en vivo
-                await Promise.all(carrito.map(async (itemChango) => {
-                    try {
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seg max
-
-                        const urlRender = `https://puente-juani.onrender.com/buscar/${itemChango.codigo}`;
-                        const res = await fetch(urlRender, { signal: controller.signal });
-                        clearTimeout(timeoutId);
-
-                        const data = await res.json();
+                Papa.parse(textoCSV, {
+                    header: true, skipEmptyLines: true,
+                    complete: function(results) {
+                        const datosFrescos = results.data;
                         
-                        if(data.exito && data.articulo && data.articulo.venta && data.articulo.venta.valor) {
-                            const precioRealScanntech = parseFloat(data.articulo.venta.valor);
-                            if(precioRealScanntech !== itemChango.precio) {
-                                itemChango.precio = precioRealScanntech;
-                                huboCambios = true;
+                        carrito.forEach(itemChango => {
+                            // Buscamos el código exacto, afeitando espacios por las dudas
+                            const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
+                            
+                            if(itemFresco && itemFresco.precio) {
+                                // MAGIA PARA PESOS ARGENTINOS: Limpiamos los puntos y comas
+                                let strPrecio = String(itemFresco.precio).replace(/\$|\s/g, ''); // Saca el $ y espacios
+                                strPrecio = strPrecio.replace(/\./g, ''); // Saca los puntos de mil (1.500 -> 1500)
+                                strPrecio = strPrecio.replace(/,/g, '.'); // Cambia coma por punto decimal (1500,50 -> 1500.50)
+                                
+                                const precioFresco = parseFloat(strPrecio);
+                                
+                                // Si el precio es válido y distinto al del changuito, lo actualiza
+                                if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
+                                    itemChango.precio = precioFresco;
+                                    huboCambios = true;
+                                }
                             }
-                        }
-                    } catch(e) { } 
-                }));
+                        });
 
+                        btn.innerHTML = textoOriginal;
+                        btn.disabled = false;
+
+                        if(huboCambios) {
+                            // Si cambió, actualiza la pantalla y muestra el cartel
+                            renderizarListaCheckout(); 
+                            actualizarIndicadoresCarrito();
+                            document.getElementById('modal-aviso-precio').classList.remove('hidden');
+                        } else {
+                            // Si está todo OK, manda el WhatsApp
+                            enviarWhatsAppFinal(carrito);
+                        }
+                    }
+                });
+            } catch (error) {
+                // Si la doña se quedó sin internet justo ahí, mandamos igual para asegurar la venta
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+                enviarWhatsAppFinal(carrito);
+            }
+        }
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
 
