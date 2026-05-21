@@ -99,7 +99,7 @@
         <main class="hidden" id="contenedor-productos"></main>
     </div>
 
-    <div id="pantalla-carrito" class="hidden min-h-screen bg-white max-w-md mx-auto relative pb-32">
+    <div id="pantalla-carrito" class="hidden min-h-screen bg-white max-w-md mx-auto relative pb-40">
         <div class="bg-white sticky top-0 z-40 px-4 py-4 border-b border-gray-100 flex items-center shadow-sm">
             <button onclick="cerrarPantallaCarrito()" class="text-juani-blue p-2 bg-blue-50 rounded-full font-bold active:scale-95">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -109,6 +109,30 @@
         </div>
 
         <div id="lista-carrito-checkout" class="p-4 flex flex-col gap-4"></div>
+
+        <div id="panel-opciones-compra" class="hidden px-4 pb-4 animate-fade-in">
+            <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4 shadow-sm mb-4">
+                <h3 class="font-bold text-juani-blue text-sm mb-3 uppercase flex items-center gap-2"><span class="text-lg">🚚</span> Forma de Entrega</h3>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <button id="btn-retiro" onclick="setEntrega('retiro')" class="bg-juani-blue text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-juani-blue transition-colors">Retiro en local</button>
+                    <button id="btn-envio" onclick="setEntrega('envio')" class="bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors">Envío a dom.</button>
+                </div>
+                <div id="div-direccion" class="hidden animate-slide-up">
+                    <input type="text" id="input-direccion" placeholder="Ej: Calle 14 Nro 1234, Barrio..." class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
+                </div>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 shadow-sm">
+                <h3 class="font-bold text-gray-700 text-sm mb-3 uppercase flex items-center gap-2"><span class="text-lg">💳</span> Medio de Pago</h3>
+                <select id="select-pago" onchange="setPago()" class="w-full p-3.5 rounded-xl border border-gray-300 bg-white font-bold text-gray-800 outline-none focus:ring-2 focus:ring-juani-blue shadow-sm appearance-none">
+                    <option value="efectivo">💵 Efectivo al entregar</option>
+                    <option value="transferencia">🏦 Transferencia Bancaria</option>
+                    <option value="cuentadni">📱 Cuenta DNI</option>
+                    <option value="debito">💳 Tarjeta de Débito</option>
+                    <option value="credito">💳 Tarjeta de Crédito (+10%)</option>
+                </select>
+            </div>
+        </div>
 
         <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50 max-w-md mx-auto pb-safe">
             <div class="flex justify-between items-center mb-3">
@@ -186,6 +210,10 @@
         let productoAbierto = null;
         let cantTemporalModal = 1;
         let preciosVerificados = false; 
+        
+        // Variables para la compra final
+        let subtotalCarritoPuro = 0;
+        let modoEntrega = 'retiro';
 
         const CATEGORIAS_DESTACADAS = ['Almacen', 'Bebidas', 'Fiambreria', 'Limpieza'];
 
@@ -481,10 +509,51 @@
             cerrarModalVaciar(); 
         }
 
+        // ================= LÓGICA DE OPCIONES DE COMPRA =================
+        function setEntrega(modo) {
+            modoEntrega = modo;
+            const btnRetiro = document.getElementById('btn-retiro');
+            const btnEnvio = document.getElementById('btn-envio');
+            const divDir = document.getElementById('div-direccion');
+
+            if(modo === 'envio') {
+                btnEnvio.className = "bg-juani-blue text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-juani-blue transition-colors";
+                btnRetiro.className = "bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors";
+                divDir.classList.remove('hidden');
+            } else {
+                btnRetiro.className = "bg-juani-blue text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-juani-blue transition-colors";
+                btnEnvio.className = "bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors";
+                divDir.classList.add('hidden');
+            }
+        }
+
+        function setPago() {
+            actualizarTotalFinal();
+        }
+
+        function actualizarTotalFinal() {
+            const selectPago = document.getElementById('select-pago');
+            const metodoPago = selectPago.value;
+            
+            let total = subtotalCarritoPuro;
+            let textoFinal = '';
+
+            if (metodoPago === 'credito') {
+                const recargo = total * 0.10;
+                total += recargo;
+                textoFinal = `<span class="text-sm text-gray-400 font-normal mr-2 line-through">$${subtotalCarritoPuro.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span> $${total.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+            } else {
+                textoFinal = `$${total.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+            }
+            
+            document.getElementById('checkout-total').innerHTML = textoFinal;
+        }
+
         function renderizarListaCheckout() {
             const divCarrito = document.getElementById('lista-carrito-checkout');
+            const panelOpciones = document.getElementById('panel-opciones-compra');
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
-            let granTotal = 0;
+            subtotalCarritoPuro = 0; // Reiniciamos el subtotal
             divCarrito.innerHTML = '';
 
             if(carrito.length === 0) {
@@ -495,13 +564,16 @@
                     <p class="text-gray-400 text-sm mt-2 mb-6">Aprovechá las ofertas de hoy.</p>
                     <button onclick="cerrarPantallaCarrito()" class="bg-blue-50 text-juani-blue font-bold px-6 py-3 rounded-xl border border-blue-100">Volver a comprar</button>
                 </div>`;
+                panelOpciones.classList.add('hidden'); // Ocultar panel de pago si no hay productos
                 document.getElementById('checkout-total').innerText = "$0,00";
                 return;
             }
 
+            panelOpciones.classList.remove('hidden'); // Mostrar panel si hay productos
+
             carrito.forEach(prod => {
                 let sub = prod.precio * prod.cantidad;
-                granTotal += sub;
+                subtotalCarritoPuro += sub;
                 const elementoImagen = prod.imagen ? 
                     `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
                     `<div class="text-xl text-gray-300">📦</div>`;
@@ -517,16 +589,15 @@
                             <span class="text-sm font-black text-juani-blue">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
                             <div class="flex items-center bg-gray-50 rounded-lg border border-gray-200 p-0.5">
                                 <button onclick="modificarEnCheckout(${prod.id}, -1)" class="w-8 h-8 rounded-md bg-white text-gray-600 shadow-sm flex items-center justify-center font-bold">-</button>
-                                
                                 <input type="tel" value="${prod.cantidad}" oninput="ingresoManualCheckout(${prod.id}, this.value)" class="font-bold text-gray-800 text-xs w-10 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
-                                
                                 <button onclick="modificarEnCheckout(${prod.id}, 1)" class="w-8 h-8 rounded-md bg-white text-gray-600 shadow-sm flex items-center justify-center font-bold">+</button>
                             </div>
                         </div>
                     </div>
                 </div>`;
             });
-            document.getElementById('checkout-total').innerText = `$${granTotal.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+            
+            actualizarTotalFinal(); // Calculamos el total con o sin recargo según lo que esté seleccionado
         }
 
         function modificarEnCheckout(id, cambio) {
@@ -556,6 +627,7 @@
             }
         }
 
+        // ================= SEGURIDAD Y WHATSAPP (CON DATOS DE ENTREGA/PAGO) =================
         async function dispararPedidoWhatsApp() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
@@ -625,14 +697,36 @@
 
         function enviarWhatsAppFinal(carrito) {
             let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`;
-            let granTotal = 0;
+            
+            // 1. Armamos el listado de productos
+            mensaje += `🛒 *MI CHANGUITO:*\n`;
             carrito.forEach(item => {
-                let sub = item.precio * item.cantidad; granTotal += sub;
+                let sub = item.precio * item.cantidad; 
                 mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} x $${item.precio.toLocaleString('es-AR')} = *$${sub.toLocaleString('es-AR')}*\n\n`;
             });
-            mensaje += `Total estimado a pagar: *$${granTotal.toLocaleString('es-AR')}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
+
+            // 2. Armamos la info de entrega
+            mensaje += `🚚 *ENTREGA:* ${modoEntrega === 'retiro' ? 'Retiro en el local' : 'Envío a domicilio'}\n`;
+            if(modoEntrega === 'envio') {
+                const direccion = document.getElementById('input-direccion').value.trim() || 'No especificó dirección';
+                mensaje += `📍 *Dirección:* ${direccion}\n`;
+            }
+
+            // 3. Armamos la info de pago y totales finales
+            const selectPago = document.getElementById('select-pago');
+            const textoPagoElegido = selectPago.options[selectPago.selectedIndex].text;
+            const valorPagoElegido = selectPago.value;
             
-            const NUMERO_TELEFONO_JUANI = "5491100000000"; 
+            mensaje += `💳 *MEDIO DE PAGO:* ${textoPagoElegido}\n\n`;
+            
+            let totalFinal = subtotalCarritoPuro;
+            if(valorPagoElegido === 'credito') {
+                totalFinal = totalFinal * 1.10;
+            }
+
+            mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
+            
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; // ¡PONÉ TU NÚMERO DE WHATSAPP ACÁ!
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
