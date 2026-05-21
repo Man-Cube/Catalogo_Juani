@@ -164,7 +164,7 @@
                     <div class="flex items-center bg-gray-50 rounded-2xl border border-gray-200 p-1">
                         <button onclick="ajustarTempCant(-1)" class="w-12 h-12 rounded-xl bg-white text-juani-blue shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">-</button>
                         
-                        <input type="tel" id="modal-temp-cant" oninput="ingresoManualModal(this.value)" onfocus="document.getElementById('modal-producto').style.paddingBottom = '40vh';" onblur="document.getElementById('modal-producto').style.paddingBottom = '0';" class="font-black text-gray-800 text-xl w-14 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
+                        <input type="tel" id="modal-temp-cant" oninput="ingresoManualModal(this.value)" onfocus="document.getElementById('modal-producto').style.paddingBottom = '12vh';" onblur="document.getElementById('modal-producto').style.paddingBottom = '0';" class="font-black text-gray-800 text-xl w-14 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
                         
                         <button onclick="ajustarTempCant(1)" class="w-12 h-12 rounded-xl bg-juani-blue text-white shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">+</button>
                     </div>
@@ -759,7 +759,7 @@
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
+            const NUMERO_TELEFONO_JUANI = "5491100000000"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
