@@ -115,7 +115,7 @@
                 <h3 class="font-bold text-juani-blue text-sm mb-3 uppercase flex items-center gap-2"><span class="text-lg">🚚</span> Forma de Entrega</h3>
                 <div class="grid grid-cols-2 gap-2 mb-3">
                     <button id="btn-retiro" onclick="setEntrega('retiro')" class="bg-juani-blue text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-juani-blue transition-colors">Retiro en local</button>
-                    <button id="btn-envio" onclick="setEntrega('envio')" class="bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors">Envío a dom.</button>
+                    <button id="btn-envio" onclick="setEntrega('envio')" class="bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors">Envío a domicilio</button>
                 </div>
                 <div id="div-direccion" class="hidden animate-slide-up">
                     <input type="text" id="input-direccion" placeholder="Ej: Calle 14 Nro 1234, Barrio..." class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
@@ -211,11 +211,23 @@
         let cantTemporalModal = 1;
         let preciosVerificados = false; 
         
-        // Variables para la compra final
         let subtotalCarritoPuro = 0;
         let modoEntrega = 'retiro';
 
         const CATEGORIAS_DESTACADAS = ['Almacen', 'Bebidas', 'Fiambreria', 'Limpieza'];
+
+        // --- LÓGICA DE NAVEGACIÓN (ESCUDO PARA BOTÓN ATRÁS DE ANDROID) ---
+        window.addEventListener('popstate', function(event) {
+            // Cerramos cualquier modal abierto forzosamente
+            cerrarModalProductoVisualmente();
+            cerrarModalVaciar();
+            cerrarAvisoPrecio();
+            
+            // Si el hash ya no es #carrito, lo ocultamos para volver al catálogo
+            if (window.location.hash !== '#carrito') {
+                cerrarCarritoVisualmente();
+            }
+        });
 
         async function inicializarCatalogo() {
             try {
@@ -225,7 +237,14 @@
                 Papa.parse(textoCSV, {
                     header: true, skipEmptyLines: true,
                     complete: function(results) {
-                        BD_PRODUCTOS = results.data.map((item, index) => ({
+                        
+                        const productosDisponibles = results.data.filter(item => {
+                            const stock = item.stock ? item.stock.trim() : '';
+                            if (stock === "0") { return false; }
+                            return true; 
+                        });
+
+                        BD_PRODUCTOS = productosDisponibles.map((item, index) => ({
                             id: index,
                             codigo: item.codigo ? item.codigo.trim() : '',
                             nombre: item.nombre ? item.nombre.trim() : 'Sin nombre',
@@ -358,6 +377,7 @@
 
         function filtrarCatalogo() { renderizarCatalogo(); }
 
+        // ====== CONTROL DE MODAL DE PRODUCTO (CON HISTORIAL) ======
         function abrirModalProducto(id) {
             productoAbierto = BD_PRODUCTOS.find(p => p.id === id);
             if(!productoAbierto) return;
@@ -374,9 +394,20 @@
 
             actualizarVistaTemporalModal();
             document.getElementById('modal-producto').classList.remove('hidden');
+            
+            // Miga de pan para el modal de producto
+            history.pushState({ vista: 'producto' }, '', '#producto');
         }
 
         function cerrarModalProducto() {
+            if(window.location.hash === '#producto') {
+                history.back(); // Si tiene la miga de pan, vuelve atrás en el celu
+            } else {
+                cerrarModalProductoVisualmente();
+            }
+        }
+
+        function cerrarModalProductoVisualmente() {
             document.getElementById('modal-producto').classList.add('hidden');
             productoAbierto = null;
         }
@@ -420,7 +451,7 @@
             productoAbierto.cantidad = cantTemporalModal;
             if(cantTemporalModal > 0) { volarAlCarrito(); }
             preciosVerificados = false; 
-            cerrarModalProducto();
+            cerrarModalProducto(); // Dispara el history.back()
             renderizarCatalogo();
         }
 
@@ -478,15 +509,27 @@
             }
         }
 
+        // ====== CONTROL DEL CARRITO (CON HISTORIAL) ======
         function abrirPantallaCarrito() {
             document.getElementById('pantalla-catalogo').classList.add('hidden');
             document.getElementById('btn-carrito-flotante').classList.add('hidden');
             document.getElementById('pantalla-carrito').classList.remove('hidden');
             renderizarListaCheckout();
             window.scrollTo(0,0);
+            
+            // Miga de pan para el carrito
+            history.pushState({ vista: 'carrito' }, '', '#carrito');
         }
 
         function cerrarPantallaCarrito() {
+            if(window.location.hash === '#carrito') {
+                history.back(); // Hace que el celular vuelva atrás solo
+            } else {
+                cerrarCarritoVisualmente();
+            }
+        }
+
+        function cerrarCarritoVisualmente() {
             document.getElementById('pantalla-carrito').classList.add('hidden');
             document.getElementById('pantalla-catalogo').classList.remove('hidden');
             document.getElementById('btn-carrito-flotante').classList.remove('hidden');
@@ -509,7 +552,6 @@
             cerrarModalVaciar(); 
         }
 
-        // ================= LÓGICA DE OPCIONES DE COMPRA =================
         function setEntrega(modo) {
             modoEntrega = modo;
             const btnRetiro = document.getElementById('btn-retiro');
@@ -553,7 +595,7 @@
             const divCarrito = document.getElementById('lista-carrito-checkout');
             const panelOpciones = document.getElementById('panel-opciones-compra');
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
-            subtotalCarritoPuro = 0; // Reiniciamos el subtotal
+            subtotalCarritoPuro = 0; 
             divCarrito.innerHTML = '';
 
             if(carrito.length === 0) {
@@ -564,12 +606,12 @@
                     <p class="text-gray-400 text-sm mt-2 mb-6">Aprovechá las ofertas de hoy.</p>
                     <button onclick="cerrarPantallaCarrito()" class="bg-blue-50 text-juani-blue font-bold px-6 py-3 rounded-xl border border-blue-100">Volver a comprar</button>
                 </div>`;
-                panelOpciones.classList.add('hidden'); // Ocultar panel de pago si no hay productos
+                panelOpciones.classList.add('hidden'); 
                 document.getElementById('checkout-total').innerText = "$0,00";
                 return;
             }
 
-            panelOpciones.classList.remove('hidden'); // Mostrar panel si hay productos
+            panelOpciones.classList.remove('hidden'); 
 
             carrito.forEach(prod => {
                 let sub = prod.precio * prod.cantidad;
@@ -597,7 +639,7 @@
                 </div>`;
             });
             
-            actualizarTotalFinal(); // Calculamos el total con o sin recargo según lo que esté seleccionado
+            actualizarTotalFinal(); 
         }
 
         function modificarEnCheckout(id, cambio) {
@@ -627,7 +669,6 @@
             }
         }
 
-        // ================= SEGURIDAD Y WHATSAPP (CON DATOS DE ENTREGA/PAGO) =================
         async function dispararPedidoWhatsApp() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
@@ -698,21 +739,18 @@
         function enviarWhatsAppFinal(carrito) {
             let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`;
             
-            // 1. Armamos el listado de productos
             mensaje += `🛒 *MI CHANGUITO:*\n`;
             carrito.forEach(item => {
                 let sub = item.precio * item.cantidad; 
                 mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} x $${item.precio.toLocaleString('es-AR')} = *$${sub.toLocaleString('es-AR')}*\n\n`;
             });
 
-            // 2. Armamos la info de entrega
             mensaje += `🚚 *ENTREGA:* ${modoEntrega === 'retiro' ? 'Retiro en el local' : 'Envío a domicilio'}\n`;
             if(modoEntrega === 'envio') {
                 const direccion = document.getElementById('input-direccion').value.trim() || 'No especificó dirección';
-                mensaje += `📍 *Dirección:* ${direccion}\n`;
+                mensaje += `📍 *Dirección:* ${direccion} (Por favor, envianos tu ubicación por acá para que el delivery llegue perfecto)\n`;
             }
 
-            // 3. Armamos la info de pago y totales finales
             const selectPago = document.getElementById('select-pago');
             const textoPagoElegido = selectPago.options[selectPago.selectedIndex].text;
             const valorPagoElegido = selectPago.value;
@@ -726,7 +764,7 @@
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; // ¡PONÉ TU NÚMERO DE WHATSAPP ACÁ!
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; // ¡ACORDATE DE PONER TU NUMERO!
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
