@@ -216,13 +216,25 @@
 
         const CATEGORIAS_DESTACADAS = ['Almacen', 'Bebidas', 'Fiambreria', 'Limpieza'];
 
+        // ====== LA MAGIA PARA ATRAPAR EL BOTÓN "ATRÁS" DEL CELULAR ======
         window.addEventListener('popstate', function(event) {
             cerrarModalProductoVisualmente();
             cerrarModalVaciar();
             cerrarAvisoPrecio();
             
-            if (window.location.hash !== '#carrito') {
+            const hash = window.location.hash;
+
+            if (hash === '#carrito') {
+                document.getElementById('pantalla-catalogo').classList.add('hidden');
+                document.getElementById('btn-carrito-flotante').classList.add('hidden');
+                document.getElementById('pantalla-carrito').classList.remove('hidden');
+            } else if (hash.startsWith('#cat-')) {
                 cerrarCarritoVisualmente();
+                const cat = decodeURIComponent(hash.replace('#cat-', ''));
+                seleccionarCategoria(cat, true); // true = le decimos que no vuelva a guardar historial
+            } else {
+                cerrarCarritoVisualmente();
+                seleccionarCategoria('TODOS', true);
             }
         });
 
@@ -249,7 +261,6 @@
                             precio: item.precio ? parseFloat(item.precio.replace(/[^0-9.-]+/g,"")) : 0,
                             imagen: item.imagen ? item.imagen.trim() : '',
                             descripcion: item.descripcion ? item.descripcion.trim() : 'Sin descripción adicional.',
-                            // MAGIA ACÁ: Leemos las columnas de promo del Excel
                             promo_cant: parseInt(item.promo_cant) || 0,
                             promo_precio: parseFloat(item.promo_precio) || 0,
                             cantidad: 0
@@ -353,7 +364,8 @@
             actualizarIconoCarritoFlotante();
         }
 
-        function seleccionarCategoria(cat) {
+        // ====== ACÁ SUMAMOS LA FUNCIÓN PARA QUE LE DEJE LA HUELLA A ANDROID ======
+        function seleccionarCategoria(cat, desdeHistorial = false) {
             categoriaSeleccionada = cat;
             const botones = document.getElementById('barra-categorias').getElementsByTagName('button');
             for (let btn of botones) {
@@ -373,6 +385,15 @@
                 });
             }
             renderizarCatalogo();
+
+            // Si la clienta la tocó manualmente, dejamos la miga de pan
+            if (!desdeHistorial) {
+                if (cat === 'TODOS') {
+                    history.pushState(null, '', window.location.pathname + window.location.search);
+                } else {
+                    history.pushState(null, '', '#cat-' + encodeURIComponent(cat));
+                }
+            }
         }
 
         function filtrarCatalogo() { renderizarCatalogo(); }
@@ -385,7 +406,6 @@
 
             document.getElementById('modal-titulo').innerText = productoAbierto.nombre;
             
-            // Le agregamos la aclaración de la promo en el precio del modal si existe
             let textoPrecio = `Precio por unidad: $${productoAbierto.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
             if (productoAbierto.promo_cant > 0) {
                 textoPrecio += ` <span class="text-green-600 font-bold ml-1">(🔥 Llevá ${productoAbierto.promo_cant} x $${productoAbierto.promo_precio.toLocaleString('es-AR')})</span>`;
@@ -445,7 +465,6 @@
         function actualizarVistaTemporalModal() {
             document.getElementById('modal-temp-cant').value = cantTemporalModal;
             
-            // Matemática con Promo para el botón del Modal
             let sub = 0;
             if (productoAbierto.promo_cant > 0 && cantTemporalModal >= productoAbierto.promo_cant) {
                 let combos = Math.floor(cantTemporalModal / productoAbierto.promo_cant);
@@ -627,8 +646,6 @@
             panelOpciones.classList.remove('hidden'); 
 
             carrito.forEach(prod => {
-                
-                // MAGIA ACÁ: Matemática de la promo para el Changuito
                 let sub = 0;
                 let textoPromo = '';
                 
@@ -658,9 +675,7 @@
                             <span class="text-sm font-black text-juani-blue">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
                             <div class="flex items-center bg-gray-50 rounded-lg border border-gray-200 p-0.5">
                                 <button onclick="modificarEnCheckout(${prod.id}, -1)" class="w-8 h-8 rounded-md bg-white text-gray-600 shadow-sm flex items-center justify-center font-bold">-</button>
-                                
                                 <input type="tel" value="${prod.cantidad}" onchange="ingresoManualCheckout(${prod.id}, this.value)" class="font-bold text-gray-800 text-xs w-10 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
-                                
                                 <button onclick="modificarEnCheckout(${prod.id}, 1)" class="w-8 h-8 rounded-md bg-white text-gray-600 shadow-sm flex items-center justify-center font-bold">+</button>
                             </div>
                         </div>
@@ -734,7 +749,6 @@
                                 
                                 const precioFresco = parseFloat(strPrecio);
                                 
-                                // El validador SOLO chequea el precio base unitario. No le importa la promo, así que funciona perfecto con Scanntech.
                                 if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
                                     itemChango.precio = precioFresco;
                                     huboCambios = true;
@@ -772,7 +786,6 @@
             mensaje += `🛒 *MI CHANGUITO:*\n`;
             carrito.forEach(item => {
                 let sub = 0;
-                // MAGIA ACÁ: Trasladamos el cálculo de la promo al ticket de WhatsApp
                 if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) {
                     let combos = Math.floor(item.cantidad / item.promo_cant);
                     let sueltos = item.cantidad % item.promo_cant;
@@ -803,7 +816,7 @@
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
+            const NUMERO_TELEFONO_JUANI = "5491100000000"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
