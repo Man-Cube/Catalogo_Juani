@@ -230,6 +230,7 @@
                         });
 
                         BD_PRODUCTOS = productosDisponibles.map((item, index) => {
+                            // Filtro de stock
                             const stockRaw = item.stock ? String(item.stock).trim() : '';
                             let stockReal = 9999; 
                             if (stockRaw !== "") {
@@ -237,17 +238,34 @@
                                 if(isNaN(stockReal)) stockReal = 9999;
                             }
 
+                            // ====== LA MAGIA DEL PRECIO ======
+                            // Limpiamos el texto, sacamos puntos de miles y cambiamos la coma por punto decimal
+                            let strPrecio = item.precio ? String(item.precio).trim() : '0';
+                            strPrecio = strPrecio.replace(/\$|\s/g, ''); // Saca el signo $
+                            strPrecio = strPrecio.replace(/\./g, '');    // Saca el punto de miles (4.500 -> 4500)
+                            strPrecio = strPrecio.replace(/,/g, '.');    // Cambia coma por punto (4500,00 -> 4500.00)
+                            let precioLimpio = parseFloat(strPrecio);
+                            if (isNaN(precioLimpio)) precioLimpio = 0;
+
+                            // Hacemos lo mismo para el precio de la promo por las dudas
+                            let strPromo = item.promo_precio ? String(item.promo_precio).trim() : '0';
+                            strPromo = strPromo.replace(/\$|\s/g, '');
+                            strPromo = strPromo.replace(/\./g, '');
+                            strPromo = strPromo.replace(/,/g, '.');
+                            let promoLimpia = parseFloat(strPromo);
+                            if (isNaN(promoLimpia)) promoLimpia = 0;
+
                             return {
                                 id: index,
                                 codigo: item.codigo ? String(item.codigo).trim() : '',
                                 nombre: item.nombre ? item.nombre.trim() : 'Sin nombre',
                                 categoria: item.categoria ? item.categoria.trim() : 'Otros',
                                 subcategoria: item.subcategoria ? item.subcategoria.trim() : 'General',
-                                precio: item.precio ? parseFloat(String(item.precio).replace(/[^0-9.-]+/g,"")) : 0,
+                                precio: precioLimpio, // <-- PRECIO ARREGLADO
                                 imagen: item.imagen ? item.imagen.trim() : '',
                                 descripcion: item.descripcion ? item.descripcion.trim() : 'Sin descripción adicional.',
                                 promo_cant: parseInt(item.promo_cant) || 0,
-                                promo_precio: parseFloat(item.promo_precio) || 0,
+                                promo_precio: promoLimpia, // <-- PROMO ARREGLADA
                                 stockDisponible: stockReal,
                                 cantidad: 0
                             };
