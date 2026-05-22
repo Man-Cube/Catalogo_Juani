@@ -36,7 +36,30 @@
     </button>
 
     <div id="pantalla-catalogo" class="block">
-        <header class="bg-juani-blue sticky top-0 z-50 rounded-b-3xl shadow-lg pb-2">
+       <header class="bg-juani-blue sticky top-0 z-50 rounded-b-3xl shadow-lg pb-3">
+            <div class="flex flex-col items-center pt-4 pb-2">
+                <div class="flex items-center gap-2 pr-12">
+                    <span class="text-3xl" id="logo-contenedor">🏪</span>
+                    <div class="flex flex-col">
+                        <h1 class="text-white text-xl font-extrabold leading-tight tracking-wide">Autoservicio Juani</h1>
+                        <span class="text-blue-200 text-[10px] font-semibold uppercase tracking-widest text-center">- Tu Súper de Barrio -</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-4 mt-2 mb-4">
+                <div class="bg-white rounded-full flex items-center px-4 py-2.5 shadow-inner">
+                    <span class="text-gray-400 text-lg mr-2">🔍</span>
+                    <input type="text" id="buscador-cliente" oninput="filtrarCatalogo()" placeholder="¿Qué buscás hoy, doña?" class="w-full bg-transparent outline-none text-sm text-gray-700 font-medium placeholder-gray-400">
+                </div>
+            </div>
+
+            <div class="border-t border-blue-700/50 mx-4"></div>
+
+            <div class="flex gap-4 overflow-x-auto hide-scroll px-4 mt-4 pb-1" id="barra-categorias"></div>
+
+            <div id="barra-subcategorias" class="hidden flex gap-2 overflow-x-auto hide-scroll px-4 pb-2 pt-3 border-t border-blue-700/50 mt-3"></div>
+        </header>
             <div class="flex flex-col items-center pt-4 pb-2">
                 <div class="flex items-center gap-2 pr-12">
                     <span class="text-3xl">🏪</span>
