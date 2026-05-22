@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Autoservicio Juani - Catálogo</title>
-    
+
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00388c">
     <link rel="apple-touch-icon" href="icon.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
     <style>
         body { background-color: #f0f4f8; -webkit-tap-highlight-color: transparent; }
         .bg-juani-blue { background-color: #00388c; }
@@ -29,16 +30,13 @@
 </head>
 <body class="text-gray-800 font-sans antialiased select-none pb-10">
 
-    <div id="toast-stock" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-white px-5 py-2.5 rounded-full font-bold shadow-lg z-[100] transition-opacity duration-300 opacity-0 pointer-events-none text-sm text-center w-[90%] max-w-sm">
-        ¡Doña! Solo nos quedan X unidades.
-    </div>
-
     <button onclick="abrirPantallaCarrito()" id="btn-carrito-flotante" class="fixed top-4 right-4 z-[60] active:scale-95 transition-transform p-3">
         <span class="text-3xl">🛒</span>
         <span id="badge-carrito" class="absolute -top-1 -right-1 bg-juani-red text-white text-[11px] font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md transform transition-transform hidden border-2 border-white/50">0</span>
     </button>
 
     <div id="pantalla-catalogo" class="block">
+       <header class="bg-juani-blue sticky top-0 z-50 rounded-b-3xl shadow-lg pb-3">
         <header class="bg-juani-blue sticky top-0 z-50 rounded-b-3xl shadow-lg pb-3">
             <div class="flex flex-col items-center pt-4 pb-2">
                 <div class="flex items-center gap-2 pr-12">
@@ -63,9 +61,30 @@
 
             <div id="barra-subcategorias" class="hidden flex gap-2 overflow-x-auto hide-scroll px-4 pb-2 pt-3 border-t border-blue-700/50 mt-3"></div>
         </header>
+            <div class="flex flex-col items-center pt-4 pb-2">
+                <div class="flex items-center gap-2 pr-12">
+                    <span class="text-3xl">🏪</span>
+                    <div class="flex flex-col">
+                        <h1 class="text-white text-xl font-extrabold leading-tight tracking-wide">Autoservicio Juani</h1>
+                        <span class="text-blue-200 text-[10px] font-semibold uppercase tracking-widest text-center">- Tu Súper de Barrio -</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-4 mt-2">
+                <div class="bg-white rounded-full flex items-center px-4 py-2.5 shadow-inner">
+                    <span class="text-gray-400 text-lg mr-2">🔍</span>
+                    <input type="text" id="buscador-cliente" oninput="filtrarCatalogo()" placeholder="¿Qué buscás hoy, doña?" class="w-full bg-transparent outline-none text-sm text-gray-700 font-medium placeholder-gray-400">
+                </div>
+            </div>
+
+            <div class="flex gap-4 overflow-x-auto hide-scroll px-4 mt-4 pb-1" id="barra-categorias"></div>
+
+            <div id="barra-subcategorias" class="hidden flex gap-2 overflow-x-auto hide-scroll px-4 pb-3 pt-2 border-t border-blue-700/50 mt-2"></div>
+        </header>
 
         <div id="loading-catalogo" class="p-10 text-center text-xs font-bold text-gray-400 flex flex-col items-center gap-2">
-            <span class="text-3xl animate-spin">⏳</span> Conectando con el local...
+            <span class="text-3xl animate-spin">⏳</span> Cargando las ofertas del día...
         </div>
 
         <main class="hidden" id="contenedor-productos"></main>
@@ -173,34 +192,28 @@
     <script>
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(e => {}); }); }
 
-        // ==========================================
-        // ACÁ PONÉS LA URL DE TU SERVIDOR DE RENDER
-        // ==========================================
-        const URL_SERVIDOR_RENDER = "https://TU-SERVIDOR-EN-RENDER.com/api/catalogo-juani";
-        
+        const URL_CSV_PLANILLA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6vRsDn1Xlsgb0Phw2y26b9ZSWM7ZfYf933MyKKm5Yncxihx90-vqhCHI2OukHoEVWcb2T4Wpi0RsX/pub?output=csv";
+
         let BD_PRODUCTOS = [];
         let categoriaSeleccionada = "TODOS";
         let subCategoriaSeleccionada = "TODOS";
         let productoAbierto = null;
         let cantTemporalModal = 1;
         let preciosVerificados = false; 
+        
         let subtotalCarritoPuro = 0;
         let modoEntrega = 'retiro';
 
+        // Categorías que se van a usar para el carrusel de la página de inicio
         const CATEGORIAS_DESTACADAS = ['Promos', 'Almacen', 'Bebidas', 'Fiambreria', 'Limpieza'];
 
-        function mostrarToastStock(stockDisponible) {
-            const toast = document.getElementById('toast-stock');
-            toast.innerText = `¡Doña! Solo nos quedan ${stockDisponible} unidades en stock.`;
-            toast.classList.remove('opacity-0');
-            setTimeout(() => { toast.classList.add('opacity-0'); }, 3500);
-        }
-
+        // Lógica de Historial (Flecha atrás del celular)
+        // Escudo de Navegación inteligente (Flecha atrás)
         window.addEventListener('popstate', function(event) {
             cerrarModalProductoVisualmente();
             cerrarModalVaciar();
             cerrarAvisoPrecio();
-            
+
             const hash = window.location.hash;
 
             if (hash === '#carrito') {
@@ -219,60 +232,78 @@
 
         async function inicializarCatalogo() {
             try {
-                // Buscamos la info ya masticada desde tu servidor
-                const respuesta = await fetch(URL_SERVIDOR_RENDER);
-                const datosListos = await respuesta.json();
-                
-                // Filtramos los que no tienen stock real
-                const productosDisponibles = datosListos.filter(item => item.stockDisponible > 0);
+                const respuesta = await fetch(URL_CSV_PLANILLA);
+                const textoCSV = await respuesta.text();
 
-                BD_PRODUCTOS = productosDisponibles.map((item, index) => ({
-                    id: index,
-                    codigo: item.codigo,
-                    nombre: item.nombre,
-                    categoria: item.categoria,
-                    subcategoria: item.subcategoria,
-                    precio: item.precio,
-                    imagen: item.imagen,
-                    descripcion: 'Sin descripción adicional.',
-                    promo_cant: 0, 
-                    promo_precio: 0,
-                    stockDisponible: item.stockDisponible,
-                    cantidad: 0
-                }));
-                
-                document.getElementById('loading-catalogo').classList.add('hidden');
-                document.getElementById('contenedor-productos').classList.remove('hidden');
-                
-                renderizarBarraCategorias();
-                renderizarCatalogo();
-                
-            } catch (error) { 
-                document.getElementById('loading-catalogo').innerText = "❌ Error conectando con el local."; 
-            }
+                Papa.parse(textoCSV, {
+                    header: true, skipEmptyLines: true,
+                    complete: function(results) {
+                        
+                        // Filtro de Stock inmediato
+                        const productosDisponibles = results.data.filter(item => {
+                            const stock = item.stock ? String(item.stock).trim() : '';
+                            if (stock === "0") { return false; }
+                            return true; 
+                            return stock !== "0";
+                        });
+
+                        BD_PRODUCTOS = productosDisponibles.map((item, index) => ({
+                            id: index,
+                            codigo: item.codigo ? String(item.codigo).trim() : '',
+                            nombre: item.nombre ? item.nombre.trim() : 'Sin nombre',
+                            categoria: item.categoria ? item.categoria.trim() : 'Otros',
+                            subcategoria: item.subcategoria ? item.subcategoria.trim() : 'General',
+                            precio: item.precio ? parseFloat(String(item.precio).replace(/[^0-9.-]+/g,"")) : 0,
+                            imagen: item.imagen ? item.imagen.trim() : '',
+                            descripcion: item.descripcion ? item.descripcion.trim() : 'Sin descripción adicional.',
+                            promo_cant: parseInt(item.promo_cant) || 0,
+                            promo_precio: parseFloat(item.promo_precio) || 0,
+                            cantidad: 0
+                        }));
+
+                        document.getElementById('loading-catalogo').classList.add('hidden');
+                        document.getElementById('contenedor-productos').classList.remove('hidden');
+
+                        renderizarBarraCategorias();
+                        renderizarCatalogo();
+                    }
+                });
+            } catch (error) { document.getElementById('loading-catalogo').innerText = "❌ Error al cargar."; }
+            } catch (error) { document.getElementById('loading-catalogo').innerText = "❌ Error al cargar la base de datos."; }
         }
 
+        // Renderiza la botonera superior de categorías
         function renderizarBarraCategorias() {
             const barra = document.getElementById('barra-categorias');
+            // Armamos la lista de categorías existentes más el botón TODOS
             const categoriasUnicas = ["TODOS", ...new Set(BD_PRODUCTOS.map(p => p.categoria).filter(c => c !== 'Otros'))];
-            
+
+            // Diccionario de imágenes realistas (Chacho, acá pegás tus links finales de internet)
             const urlsImagenes = {
-                'TODOS': '',
-                'Promos': '',
-                'Almacen': '',
-                'Bebidas': '',
-                'Fiambreria': '',
-                'Limpieza': ''
+                'TODOS': 'URL_DE_TU_IMAGEN_TODOS_AQUÍ.png',
+                'Promos': 'URL_DE_TU_IMAGEN_PROMOS_AQUÍ.png',
+                'Almacen': 'URL_DE_TU_IMAGEN_ALMACEN_AQUÍ.png',
+                'Bebidas': 'URL_DE_TU_IMAGEN_BEBIDAS_AQUÍ.png',
+                'Fiambreria': 'URL_DE_TU_IMAGEN_FIAMBRERIA_AQUÍ.png',
+                'Limpieza': 'URL_DE_TU_IMAGEN_LIMPIEZA_AQUÍ.png'
             };
 
             barra.innerHTML = '';
-            
+
             categoriasUnicas.forEach(cat => {
                 const btn = document.createElement('button');
                 btn.id = `cat-${cat}`;
-                
+
+                let icono = '📦';
+                if (cat === 'TODOS') icono = '✨';
+                if (cat.toLowerCase().includes('almacen')) icono = '🥫';
+                if (cat.toLowerCase().includes('bebida')) icono = '🥤';
+                if (cat.toLowerCase().includes('fiambre')) icono = '🧀';
+                if (cat.toLowerCase().includes('limpieza')) icono = '🧹';
+                if (cat.toLowerCase().includes('promo')) icono = '🔥';
                 const urlImg = urlsImagenes[cat];
-                const usarFallback = !urlImg || urlImg === '';
+                // Si el link no se configuró o es la plantilla de texto, usamos el fallback de emojis tradicionales
+                const usarFallback = !urlImg || urlImg.includes('URL_DE_TU_IMAGEN') || urlImg === '';
 
                 let contenidoIcono = '';
                 if (usarFallback) {
@@ -290,23 +321,27 @@
 
                 btn.className = `flex flex-col items-center gap-1 shrink-0 transition-all ${categoriaSeleccionada === cat ? 'opacity-100 scale-105' : 'opacity-70'}`;
                 btn.innerHTML = `
+                    <div class="w-12 h-12 ${cat === 'TODOS' ? 'bg-juani-red' : 'bg-blue-800'} rounded-full flex items-center justify-center text-xl shadow-md border-2 border-white">
+                        ${icono}
                     <div class="w-12 h-12 ${cat === 'TODOS' ? 'bg-juani-red' : 'bg-blue-800'} rounded-full flex items-center justify-center shadow-md border-2 border-white overflow-hidden p-1">
                         ${contenidoIcono}
                     </div>
                     <span class="text-white text-[10px] font-bold">${cat}</span>
                 `;
-                
+
                 btn.onclick = () => seleccionarCategoria(cat);
                 barra.appendChild(btn);
             });
         }
 
+        // Renderiza la botonera de subcategorías dependiente de la categoría activa
         function renderizarBarraSubcategorias(productosFiltrados) {
             const barra = document.getElementById('barra-subcategorias');
             barra.innerHTML = '';
-            
+
             const subcategoriasUnicas = ["TODOS", ...new Set(productosFiltrados.map(p => p.subcategoria))];
-            
+
+            // Si solo hay "TODOS" y "General", ocultamos la barra porque no tiene sentido
             if (subcategoriasUnicas.length <= 2 && subcategoriasUnicas.includes("General")) {
                 barra.classList.add('hidden');
                 return;
@@ -355,10 +390,11 @@
             contenedor.innerHTML = '';
             const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
 
+            // MODO 1: Búsqueda
             if (busqueda !== "") {
                 const filtrados = BD_PRODUCTOS.filter(p => p.nombre.toLowerCase().includes(busqueda) || p.codigo.includes(busqueda));
                 barraSub.classList.add('hidden');
-                
+
                 if(filtrados.length === 0) {
                     contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full";
                     contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No encontramos productos con esa búsqueda.</p>`;
@@ -370,13 +406,14 @@
                 return;
             }
 
+            // MODO 2: Inicio (Carruseles)
             if (categoriaSeleccionada === "TODOS") {
                 barraSub.classList.add('hidden');
                 contenedor.className = "pb-24 max-w-md mx-auto w-full flex flex-col gap-6 pt-2 animate-fade-in";
-                
+
                 CATEGORIAS_DESTACADAS.forEach(cat => {
                     const prodsCat = BD_PRODUCTOS.filter(p => p.categoria.toLowerCase() === cat.toLowerCase());
-                    
+
                     if(prodsCat.length > 0) {
                         let htmlCarrusel = `
                         <div class="flex flex-col w-full">
@@ -386,7 +423,7 @@
                             </div>
                             <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">
                         `;
-                        
+
                         prodsCat.slice(0, 8).forEach(prod => {
                             htmlCarrusel += generarHTMLTarjeta(prod, 'carrusel');
                         });
@@ -400,14 +437,15 @@
                                 </div>
                             </div>
                         </div>`;
-                        
+
                         contenedor.innerHTML += htmlCarrusel;
                     }
                 });
             } 
+            // MODO 3: Categoría y Subcategoría (Grilla)
             else {
                 let filtrados = BD_PRODUCTOS.filter(p => p.categoria === categoriaSeleccionada);
-                
+
                 barraSub.classList.remove('hidden');
                 renderizarBarraSubcategorias(filtrados);
 
@@ -427,20 +465,40 @@
             actualizarIconoCarritoFlotante();
         }
 
+        // Navegación con ReplaceState para no viciar la flecha de atrás
         function seleccionarCategoria(cat, desdeHistorial = false) {
             let categoriaAnterior = categoriaSeleccionada;
             categoriaSeleccionada = cat;
             subCategoriaSeleccionada = "TODOS";
-            
+
+            const botones = document.getElementById('barra-categorias').getElementsByTagName('button');
+            for (let btn of botones) {
+                if(btn.id === `cat-${cat}`) { 
+                    btn.classList.remove('opacity-70'); 
+                    btn.classList.add('scale-105', 'opacity-100'); 
+                } else { 
+                    btn.classList.remove('scale-105', 'opacity-100'); 
+                    btn.classList.add('opacity-70'); 
+                }
+            }
+            const btnActivo = document.getElementById(`cat-${cat}`);
+            if(btnActivo) {
+                document.getElementById('barra-categorias').scrollTo({
+                    left: btnActivo.offsetLeft - 20,
+                    behavior: 'smooth'
+                });
+            }
             renderizarBarraCategorias();
             renderizarCatalogo();
 
             if (!desdeHistorial) {
                 if (cat === 'TODOS') {
+                    history.pushState(null, '', window.location.pathname + window.location.search);
                     if (categoriaAnterior !== 'TODOS') {
                         history.pushState(null, '', window.location.pathname + window.location.search);
                     }
                 } else {
+                    history.pushState(null, '', '#cat-' + encodeURIComponent(cat));
                     if (categoriaAnterior === 'TODOS') {
                         history.pushState(null, '', '#cat-' + encodeURIComponent(cat));
                     } else {
@@ -459,19 +517,22 @@
             cantTemporalModal = productoAbierto.cantidad > 0 ? productoAbierto.cantidad : 1;
 
             document.getElementById('modal-titulo').innerText = productoAbierto.nombre;
-            
+
             let textoPrecio = `Precio por unidad: $${productoAbierto.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+            if (productoAbierto.promo_cant > 0) {
+                textoPrecio += ` <span class="text-green-600 font-bold ml-1">(🔥 Llevá ${productoAbierto.promo_cant} x $${productoAbierto.promo_precio.toLocaleString('es-AR')})</span>`;
+            }
             document.getElementById('modal-precio-unitario').innerHTML = textoPrecio;
-            
+
             document.getElementById('modal-desc').innerText = productoAbierto.descripcion;
-            
+
             document.getElementById('modal-img-container').innerHTML = productoAbierto.imagen ? 
                 `<img id="img-vuelo-origen" src="${productoAbierto.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
                 `<div id="img-vuelo-origen" class="text-7xl text-gray-300">📦</div>`;
 
             actualizarVistaTemporalModal();
             document.getElementById('modal-producto').classList.remove('hidden');
-            
+
             history.pushState({ vista: 'producto' }, '', '#producto');
         }
 
@@ -489,13 +550,7 @@
         }
 
         function ajustarTempCant(cambio) {
-            let nueva = cantTemporalModal + cambio;
-            
-            if (nueva > productoAbierto.stockDisponible) {
-                nueva = productoAbierto.stockDisponible;
-                mostrarToastStock(productoAbierto.stockDisponible);
-            }
-
+            const nueva = cantTemporalModal + cambio;
             if(nueva >= 1 && nueva <= 999) { 
                 cantTemporalModal = nueva;
                 actualizarVistaTemporalModal();
@@ -510,15 +565,10 @@
             let nueva = parseInt(valorEscrito);
             if(isNaN(nueva) || nueva < 0) nueva = 0;
             if(nueva > 999) nueva = 999;
-            
-            if (nueva > productoAbierto.stockDisponible) {
-                nueva = productoAbierto.stockDisponible;
-                mostrarToastStock(productoAbierto.stockDisponible);
-            }
-            
+
             cantTemporalModal = nueva;
             actualizarVistaTemporalModal();
-            
+
             if (nueva === 0 && productoAbierto.cantidad > 0) {
                 document.getElementById('btn-confirmar-modal').innerHTML = `<span>Quitar del changuito</span><span class="text-xl">🗑️</span>`;
             }
@@ -526,9 +576,18 @@
 
         function actualizarVistaTemporalModal() {
             document.getElementById('modal-temp-cant').value = cantTemporalModal;
-            let sub = cantTemporalModal * productoAbierto.precio;
+
+            let sub = 0;
+            if (productoAbierto.promo_cant > 0 && cantTemporalModal >= productoAbierto.promo_cant) {
+                let combos = Math.floor(cantTemporalModal / productoAbierto.promo_cant);
+                let sueltos = cantTemporalModal % productoAbierto.promo_cant;
+                sub = (combos * productoAbierto.promo_precio) + (sueltos * productoAbierto.precio);
+            } else {
+                sub = cantTemporalModal * productoAbierto.precio;
+            }
+
             const btnConfirmar = document.getElementById('btn-confirmar-modal');
-            
+
             if(cantTemporalModal > 0) {
                 btnConfirmar.innerHTML = `<span>Agregar al changuito</span><span class="font-black text-lg bg-white/20 px-3 py-1 rounded-lg">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>`;
             }
@@ -545,14 +604,14 @@
         function volarAlCarrito() {
             const imgOrigen = document.getElementById('img-vuelo-origen');
             const iconDestino = document.getElementById('btn-carrito-flotante');
-            
+
             if(!imgOrigen || !iconDestino) return;
 
             const rectOrigen = imgOrigen.getBoundingClientRect();
             const rectDestino = iconDestino.getBoundingClientRect();
             const clon = imgOrigen.cloneNode(true);
             clon.classList.add('flying-item');
-            
+
             if(clon.tagName === 'DIV') {
                 clon.style.width = rectOrigen.width + 'px';
                 clon.style.height = rectOrigen.height + 'px';
@@ -602,7 +661,7 @@
             document.getElementById('pantalla-carrito').classList.remove('hidden');
             renderizarListaCheckout();
             window.scrollTo(0,0);
-            
+
             history.pushState({ vista: 'carrito' }, '', '#carrito');
         }
 
@@ -661,7 +720,7 @@
         function actualizarTotalFinal() {
             const selectPago = document.getElementById('select-pago');
             const metodoPago = selectPago.value;
-            
+
             let total = subtotalCarritoPuro;
             let textoFinal = '';
 
@@ -672,7 +731,7 @@
             } else {
                 textoFinal = `$${total.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
             }
-            
+
             document.getElementById('checkout-total').innerHTML = textoFinal;
         }
 
@@ -699,7 +758,19 @@
             panelOpciones.classList.remove('hidden'); 
 
             carrito.forEach(prod => {
-                let sub = prod.precio * prod.cantidad;
+                let sub = 0;
+                let textoPromo = '';
+
+                // Cálculo matemático de promo en checkout
+                if (prod.promo_cant > 0 && prod.cantidad >= prod.promo_cant) {
+                    let combos = Math.floor(prod.cantidad / prod.promo_cant);
+                    let sueltos = prod.cantidad % prod.promo_cant;
+                    sub = (combos * prod.promo_precio) + (sueltos * prod.precio);
+                    textoPromo = `<span class="bg-green-100 text-green-700 text-[9px] font-black px-1.5 py-0.5 rounded-md ml-1 align-middle">PROMO</span>`;
+                } else {
+                    sub = prod.precio * prod.cantidad;
+                }
+
                 subtotalCarritoPuro += sub;
 
                 const elementoImagen = prod.imagen ? 
@@ -712,32 +783,28 @@
                         ${elementoImagen}
                     </div>
                     <div class="flex-1">
-                        <h4 class="text-xs font-bold text-gray-800 leading-tight uppercase line-clamp-2">${prod.nombre}</h4>
+                        <h4 class="text-xs font-bold text-gray-800 leading-tight uppercase line-clamp-2">${prod.nombre} ${textoPromo}</h4>
                         <div class="flex items-center justify-between mt-2">
                             <span class="text-sm font-black text-juani-blue">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
                             <div class="flex items-center bg-gray-50 rounded-lg border border-gray-200 p-0.5">
                                 <button onclick="modificarEnCheckout(${prod.id}, -1)" class="w-8 h-8 rounded-md bg-white text-gray-600 shadow-sm flex items-center justify-center font-bold">-</button>
+                                
                                 <input type="tel" value="${prod.cantidad}" onchange="ingresoManualCheckout(${prod.id}, this.value)" class="font-bold text-gray-800 text-xs w-10 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
+                                
                                 <button onclick="modificarEnCheckout(${prod.id}, 1)" class="w-8 h-8 rounded-md bg-white text-gray-600 shadow-sm flex items-center justify-center font-bold">+</button>
                             </div>
                         </div>
                     </div>
                 </div>`;
             });
-            
+
             actualizarTotalFinal(); 
         }
 
         function modificarEnCheckout(id, cambio) {
             const index = BD_PRODUCTOS.findIndex(p => p.id === id);
             if(index !== -1) {
-                let nuevaCant = BD_PRODUCTOS[index].cantidad + cambio;
-                
-                if (nuevaCant > BD_PRODUCTOS[index].stockDisponible) {
-                    nuevaCant = BD_PRODUCTOS[index].stockDisponible;
-                    mostrarToastStock(BD_PRODUCTOS[index].stockDisponible);
-                }
-
+                const nuevaCant = BD_PRODUCTOS[index].cantidad + cambio;
                 if(nuevaCant >= 0 && nuevaCant <= 999) {
                     BD_PRODUCTOS[index].cantidad = nuevaCant;
                     preciosVerificados = false; 
@@ -754,11 +821,6 @@
                 if(isNaN(nuevaCant) || nuevaCant < 0) nuevaCant = 0;
                 if(nuevaCant > 999) nuevaCant = 999;
 
-                if (nuevaCant > BD_PRODUCTOS[index].stockDisponible) {
-                    nuevaCant = BD_PRODUCTOS[index].stockDisponible;
-                    mostrarToastStock(BD_PRODUCTOS[index].stockDisponible);
-                }
-
                 BD_PRODUCTOS[index].cantidad = nuevaCant;
                 preciosVerificados = false; 
                 renderizarListaCheckout(); 
@@ -770,39 +832,58 @@
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
 
+            if (preciosVerificados) {
+                enviarWhatsAppFinal(carrito);
+                preciosVerificados = false; 
+                return;
+            }
+
             const btn = document.getElementById('btn-confirmar-pedido');
             const textoOriginal = btn.innerHTML;
             btn.innerHTML = `<span class="animate-spin text-xl inline-block mr-2">⏳</span> Verificando...`;
             btn.disabled = true;
 
             try {
-                // Hacemos el re-check de seguridad conectándonos al servidor nuevamente
-                const respuesta = await fetch(URL_SERVIDOR_RENDER);
-                const datosFrescos = await respuesta.json();
+                const urlFresca = URL_CSV_PLANILLA + "&t=" + new Date().getTime();
+                const respuesta = await fetch(urlFresca);
+                const textoCSV = await respuesta.text();
                 let huboCambios = false;
-                
-                carrito.forEach(itemChango => {
-                    const itemFresco = datosFrescos.find(f => String(f.codigo) === String(itemChango.codigo));
-                    
-                    if(itemFresco && itemFresco.precio) {
-                        if(itemFresco.precio !== itemChango.precio) {
-                            itemChango.precio = itemFresco.precio;
-                            huboCambios = true;
+
+                Papa.parse(textoCSV, {
+                    header: true, skipEmptyLines: true,
+                    complete: function(results) {
+                        const datosFrescos = results.data;
+
+                        carrito.forEach(itemChango => {
+                            const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
+
+                            if(itemFresco && itemFresco.precio) {
+                                let strPrecio = String(itemFresco.precio).replace(/\$|\s/g, ''); 
+                                strPrecio = strPrecio.replace(/\./g, ''); 
+                                strPrecio = strPrecio.replace(/,/g, '.'); 
+
+                                const precioFresco = parseFloat(strPrecio);
+
+                                if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
+                                    itemChango.precio = precioFresco;
+                                    huboCambios = true;
+                                }
+                            }
+                        });
+
+                        btn.innerHTML = textoOriginal;
+                        btn.disabled = false;
+
+                        if(huboCambios) {
+                            preciosVerificados = true; 
+                            renderizarListaCheckout(); 
+                            actualizarIconoCarritoFlotante(); 
+                            document.getElementById('modal-aviso-precio').classList.remove('hidden');
+                        } else {
+                            enviarWhatsAppFinal(carrito);
                         }
                     }
                 });
-
-                btn.innerHTML = textoOriginal;
-                btn.disabled = false;
-
-                if(huboCambios) {
-                    preciosVerificados = true; 
-                    renderizarListaCheckout(); 
-                    actualizarIconoCarritoFlotante(); 
-                    document.getElementById('modal-aviso-precio').classList.remove('hidden');
-                } else {
-                    enviarWhatsAppFinal(carrito);
-                }
             } catch (error) {
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
@@ -816,11 +897,19 @@
 
         function enviarWhatsAppFinal(carrito) {
             let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`;
-            
+
             mensaje += `🛒 *MI CHANGUITO:*\n`;
             carrito.forEach(item => {
-                let sub = item.precio * item.cantidad; 
-                mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} x $${item.precio.toLocaleString('es-AR')} = *$${sub.toLocaleString('es-AR')}*\n\n`;
+                let sub = 0;
+                if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) {
+                    let combos = Math.floor(item.cantidad / item.promo_cant);
+                    let sueltos = item.cantidad % item.promo_cant;
+                    sub = (combos * item.promo_precio) + (sueltos * item.precio);
+                    mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} unid. (🔥 Promo aplicada) = *$${sub.toLocaleString('es-AR')}*\n\n`;
+                } else {
+                    sub = item.precio * item.cantidad; 
+                    mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} x $${item.precio.toLocaleString('es-AR')} = *$${sub.toLocaleString('es-AR')}*\n\n`;
+                }
             });
 
             mensaje += `🚚 *ENTREGA:* ${modoEntrega === 'retiro' ? 'Retiro en el local' : 'Envío a domicilio'}\n`;
@@ -832,16 +921,16 @@
             const selectPago = document.getElementById('select-pago');
             const textoPagoElegido = selectPago.options[selectPago.selectedIndex].text;
             const valorPagoElegido = selectPago.value;
-            
+
             mensaje += `💳 *MEDIO DE PAGO:* ${textoPagoElegido}\n\n`;
-            
+
             let totalFinal = subtotalCarritoPuro;
             if(valorPagoElegido === 'credito') {
                 totalFinal = totalFinal * 1.10;
             }
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
-            
+
             const NUMERO_TELEFONO_JUANI = "5491100000000"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
