@@ -187,7 +187,6 @@
 
         const CATEGORIAS_DESTACADAS = ['Promos', 'Almacen', 'Bebidas', 'Fiambreria', 'Limpieza'];
 
-        // Función para mostrar el cartel flotante de falta de stock
         function mostrarToastStock(stockDisponible) {
             const toast = document.getElementById('toast-stock');
             toast.innerText = `¡Doña! Solo nos quedan ${stockDisponible} unidades en stock.`;
@@ -195,7 +194,6 @@
             setTimeout(() => { toast.classList.add('opacity-0'); }, 3500);
         }
 
-        // Escudo de Navegación inteligente (Flecha atrás)
         window.addEventListener('popstate', function(event) {
             cerrarModalProductoVisualmente();
             cerrarModalVaciar();
@@ -228,12 +226,12 @@
                         
                         const productosDisponibles = results.data.filter(item => {
                             const stockRaw = item.stock ? String(item.stock).trim() : '';
-                            return stockRaw !== "0"; // Filtramos los que dicen explícitamente 0
+                            return stockRaw !== "0"; 
                         });
 
                         BD_PRODUCTOS = productosDisponibles.map((item, index) => {
                             const stockRaw = item.stock ? String(item.stock).trim() : '';
-                            let stockReal = 9999; // Si dejás la celda vacía, asume stock infinito
+                            let stockReal = 9999; 
                             if (stockRaw !== "") {
                                 stockReal = parseInt(stockRaw);
                                 if(isNaN(stockReal)) stockReal = 9999;
@@ -250,7 +248,7 @@
                                 descripcion: item.descripcion ? item.descripcion.trim() : 'Sin descripción adicional.',
                                 promo_cant: parseInt(item.promo_cant) || 0,
                                 promo_precio: parseFloat(item.promo_precio) || 0,
-                                stockDisponible: stockReal, // Nueva variable de control de límite
+                                stockDisponible: stockReal,
                                 cantidad: 0
                             };
                         });
@@ -269,42 +267,24 @@
             const barra = document.getElementById('barra-categorias');
             const categoriasUnicas = ["TODOS", ...new Set(BD_PRODUCTOS.map(p => p.categoria).filter(c => c !== 'Otros'))];
             
-            const urlsImagenes = {
-                'TODOS': 'URL_DE_TU_IMAGEN_TODOS_AQUÍ.png',
-                'Promos': 'URL_DE_TU_IMAGEN_PROMOS_AQUÍ.png',
-                'Almacen': 'URL_DE_TU_IMAGEN_ALMACEN_AQUÍ.png',
-                'Bebidas': 'URL_DE_TU_IMAGEN_BEBIDAS_AQUÍ.png',
-                'Fiambreria': 'URL_DE_TU_IMAGEN_FIAMBRERIA_AQUÍ.png',
-                'Limpieza': 'URL_DE_TU_IMAGEN_LIMPIEZA_AQUÍ.png'
-            };
-
             barra.innerHTML = '';
             
             categoriasUnicas.forEach(cat => {
                 const btn = document.createElement('button');
                 btn.id = `cat-${cat}`;
                 
-                const urlImg = urlsImagenes[cat];
-                const usarFallback = !urlImg || urlImg.includes('URL_DE_TU_IMAGEN') || urlImg === '';
-
-                let contenidoIcono = '';
-                if (usarFallback) {
-                    let icono = '📦';
-                    if (cat === 'TODOS') icono = '✨';
-                    if (cat.toLowerCase().includes('almacen')) icono = '🥫';
-                    if (cat.toLowerCase().includes('bebida')) icono = '🥤';
-                    if (cat.toLowerCase().includes('fiambre')) icono = '🧀';
-                    if (cat.toLowerCase().includes('limpieza')) icono = '🧹';
-                    if (cat.toLowerCase().includes('promo')) icono = '🔥';
-                    contenidoIcono = `<span class="text-xl">${icono}</span>`;
-                } else {
-                    contenidoIcono = `<img src="${urlImg}" alt="Icono ${cat}" class="w-full h-full object-contain">`;
-                }
+                let icono = '📦';
+                if (cat === 'TODOS') icono = '✨';
+                if (cat.toLowerCase().includes('almacen')) icono = '🥫';
+                if (cat.toLowerCase().includes('bebida')) icono = '🥤';
+                if (cat.toLowerCase().includes('fiambre')) icono = '🧀';
+                if (cat.toLowerCase().includes('limpieza')) icono = '🧹';
+                if (cat.toLowerCase().includes('promo')) icono = '🔥';
 
                 btn.className = `flex flex-col items-center gap-1 shrink-0 transition-all ${categoriaSeleccionada === cat ? 'opacity-100 scale-105' : 'opacity-70'}`;
                 btn.innerHTML = `
-                    <div class="w-12 h-12 ${cat === 'TODOS' ? 'bg-juani-red' : 'bg-blue-800'} rounded-full flex items-center justify-center shadow-md border-2 border-white overflow-hidden p-1">
-                        ${contenidoIcono}
+                    <div class="w-12 h-12 ${cat === 'TODOS' ? 'bg-juani-red' : 'bg-blue-800'} rounded-full flex items-center justify-center text-xl shadow-md border-2 border-white overflow-hidden p-1">
+                        <span class="text-xl">${icono}</span>
                     </div>
                     <span class="text-white text-[10px] font-bold">${cat}</span>
                 `;
@@ -504,11 +484,9 @@
             productoAbierto = null;
         }
 
-        // ====== CONTROL DE LÍMITES DE STOCK AL SUMAR UNIDADES ======
         function ajustarTempCant(cambio) {
             let nueva = cantTemporalModal + cambio;
             
-            // Verificamos si supera el stock real de la góndola
             if (nueva > productoAbierto.stockDisponible) {
                 nueva = productoAbierto.stockDisponible;
                 mostrarToastStock(productoAbierto.stockDisponible);
@@ -529,7 +507,6 @@
             if(isNaN(nueva) || nueva < 0) nueva = 0;
             if(nueva > 999) nueva = 999;
             
-            // Verificamos límite por teclado
             if (nueva > productoAbierto.stockDisponible) {
                 nueva = productoAbierto.stockDisponible;
                 mostrarToastStock(productoAbierto.stockDisponible);
@@ -767,7 +744,6 @@
             actualizarTotalFinal(); 
         }
 
-        // ====== CONTROL DE LÍMITES DE STOCK AL SUMAR UNIDADES EN CHECKOUT ======
         function modificarEnCheckout(id, cambio) {
             const index = BD_PRODUCTOS.findIndex(p => p.id === id);
             if(index !== -1) {
