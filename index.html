@@ -365,7 +365,11 @@
         }
 
         function generarHTMLTarjeta(prod, modo) {
-            const esOferta = prod.categoria.toLowerCase().includes('destacad') || prod.categoria.toLowerCase().includes('promo');
+            // 1. Vemos si tiene una promo real armada en el Excel
+            const tienePromoReal = prod.promo_cant > 0 && prod.promo_precio > 0;
+            
+            // 2. Es oferta si tiene promo real O si lo pusiste en esas categorías
+            const esOferta = tienePromoReal || prod.categoria.toLowerCase().includes('destacad') || prod.categoria.toLowerCase().includes('promo');
 
             const elementoImagen = prod.imagen ? 
                 `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
@@ -381,8 +385,20 @@
                 ? `<div class="absolute top-1 right-1 bg-juani-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md border border-white z-20">${esPesable(prod) ? prod.cantidad + ' kg' : prod.cantidad}</div>` 
                 : '';
 
+            // ====== LA MAGIA DEL CARTELITO DINÁMICO ======
+            let textoBadge = "OFERTA";
+            if (tienePromoReal) {
+                // Si es pesable y la cantidad es menor a 1 kilo, lo pasamos a gramos para que quede fachero
+                let cantTxt = esPesable(prod) 
+                    ? (prod.promo_cant < 1 ? (prod.promo_cant * 1000) + 'g' : prod.promo_cant + 'kg') 
+                    : prod.promo_cant;
+                
+                textoBadge = `${cantTxt} x $${prod.promo_precio.toLocaleString('es-AR')}`;
+            }
+
+            // Agregamos "whitespace-nowrap" para que no se parta el texto en dos renglones
             const badgeFuego = esOferta 
-                ? `<div class="absolute -top-2 -left-2 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-br-lg rounded-tl-lg shadow-md z-20 uppercase tracking-widest">🔥 Oferta</div>`
+                ? `<div class="absolute -top-2 -left-2 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-br-lg rounded-tl-lg shadow-md z-20 uppercase tracking-widest whitespace-nowrap">🔥 ${textoBadge}</div>`
                 : '';
 
             const colorBoton = esOferta ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-200';
