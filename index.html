@@ -184,8 +184,33 @@
         let subtotalCarritoPuro = 0;
         let modoEntrega = 'retiro';
 
-        // ====== DETECTOR DE PESABLES REFORZADO ======
-        // Ahora lee categoría, subcategoría Y nombre del producto para no fallar si lo pones en Ofertas
+        // ====== MEMORIA DEL CHANGUITO (LOCALSTORAGE) ======
+        function guardarCarritoEnStorage() {
+            // Guardamos solo los que tienen cantidad > 0, usando el código como identificador
+            const changoGuardado = BD_PRODUCTOS.filter(p => p.cantidad > 0).map(p => ({ codigo: p.codigo, cantidad: p.cantidad }));
+            localStorage.setItem('changuito_juani', JSON.stringify(changoGuardado));
+        }
+
+        function cargarCarritoDeStorage() {
+            const guardado = localStorage.getItem('changuito_juani');
+            if(guardado) {
+                try {
+                    const chango = JSON.parse(guardado);
+                    chango.forEach(itemGuardado => {
+                        const prod = BD_PRODUCTOS.find(p => p.codigo === itemGuardado.codigo);
+                        if(prod) {
+                            if (itemGuardado.cantidad > prod.stockDisponible) {
+                                prod.cantidad = prod.stockDisponible;
+                            } else {
+                                prod.cantidad = itemGuardado.cantidad;
+                            }
+                        }
+                    });
+                } catch(e) {}
+            }
+        }
+        // ===================================================
+
         function esPesable(prod) {
             if (!prod) return false;
             const cat = (prod.categoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -197,7 +222,7 @@
         }
 
         function obtenerPaso(prod) {
-            return esPesable(prod) ? 0.25 : 1; // Sube de a cuarto kilo
+            return esPesable(prod) ? 0.25 : 1; 
         }
 
         function mostrarToastStock(stockDisponible) {
@@ -295,6 +320,9 @@
                             };
                         });
                         
+                        // Cargamos la memoria antes de renderizar
+                        cargarCarritoDeStorage();
+
                         CATEGORIAS_DESTACADAS = [...new Set(BD_PRODUCTOS.map(p => p.categoria).filter(c => c && c.trim() !== '' && c.toLowerCase() !== 'otros'))];
 
                         CATEGORIAS_DESTACADAS.sort((a, b) => {
@@ -311,6 +339,7 @@
                         document.getElementById('contenedor-productos').classList.remove('hidden');
                         renderizarBarraCategorias();
                         renderizarCatalogo();
+                        actualizarIconoCarritoFlotante();
                     }
                 });
             } catch (error) { document.getElementById('loading-catalogo').innerText = "❌ Error al cargar la base de datos."; }
@@ -396,7 +425,6 @@
                 textoBadge = `${cantTxt} x $${prod.promo_precio.toLocaleString('es-AR')}`;
             }
 
-            // ACÁ EL CARTEL XXL DE FUEGO CON BORDES MÁS NOTORIOS
             const badgeFuego = esOferta 
                 ? `<div class="absolute -top-3 -left-3 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[12px] font-black px-3 py-1 rounded-br-xl rounded-tl-xl shadow-lg z-20 uppercase tracking-wide whitespace-nowrap border border-red-400">🔥 ${textoBadge}</div>`
                 : '';
@@ -603,6 +631,7 @@
 
         function confirmarAgregadoAlChango() {
             productoAbierto.cantidad = cantTemporalModal;
+            guardarCarritoEnStorage(); // GUARDAMOS MEMORIA ACÁ
             if(cantTemporalModal > 0) { volarAlCarrito(); }
             preciosVerificados = false; 
             cerrarModalProducto(); 
@@ -688,6 +717,7 @@
         function confirmarVaciarCarrito() {
             BD_PRODUCTOS.forEach(p => p.cantidad = 0);
             preciosVerificados = false; 
+            guardarCarritoEnStorage(); // GUARDAMOS MEMORIA (Se vacía)
             renderizarListaCheckout();
             actualizarIconoCarritoFlotante();
             cerrarModalVaciar(); 
@@ -810,6 +840,7 @@
                 if(nuevaCant >= 0 && nuevaCant <= 999) {
                     prod.cantidad = nuevaCant;
                     preciosVerificados = false; 
+                    guardarCarritoEnStorage(); // GUARDAMOS MEMORIA ACÁ
                     renderizarListaCheckout(); 
                     actualizarIconoCarritoFlotante();
                 }
@@ -831,6 +862,7 @@
 
                 prod.cantidad = nuevaCant;
                 preciosVerificados = false; 
+                guardarCarritoEnStorage(); // GUARDAMOS MEMORIA ACÁ
                 renderizarListaCheckout(); 
                 actualizarIconoCarritoFlotante();
             }
@@ -841,6 +873,7 @@
             if (index !== -1) {
                 BD_PRODUCTOS[index].cantidad = 0;
                 preciosVerificados = false; 
+                guardarCarritoEnStorage(); // GUARDAMOS MEMORIA ACÁ
                 renderizarListaCheckout(); 
                 actualizarIconoCarritoFlotante();
             }
@@ -947,7 +980,7 @@
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491100000000"; 
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
