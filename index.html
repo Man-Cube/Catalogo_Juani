@@ -522,6 +522,12 @@
             let categoriaAnterior = categoriaSeleccionada;
             categoriaSeleccionada = cat;
             subCategoriaSeleccionada = "TODOS";
+            
+            // ====== FIX DE LA LUPA ======
+            // Borra automáticamente lo que haya escrito en el buscador al cambiar de categoría
+            document.getElementById('buscador-cliente').value = "";
+            // ============================
+
             renderizarBarraCategorias();
             renderizarCatalogo();
 
