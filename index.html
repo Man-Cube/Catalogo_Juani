@@ -400,8 +400,8 @@
         }
 
         function generarHTMLTarjeta(prod, modo) {
+            const esOferta = esProductoDestacado(prod);
             const tienePromoReal = prod.promo_cant > 0 && prod.promo_precio > 0;
-            const esOferta = tienePromoReal || prod.categoria.toLowerCase().includes('destacad') || prod.categoria.toLowerCase().includes('promo');
 
             const elementoImagen = prod.imagen ? 
                 `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
@@ -440,7 +440,9 @@
                 </div>
                 <div class="flex flex-col flex-1 mt-1">
                     <h3 class="text-[11px] leading-tight font-bold text-gray-800 line-clamp-2 min-h-[28px] mb-1">${prod.nombre.toUpperCase()}</h3>
-                    <p class="text-[14px] font-extrabold text-juani-blue mt-auto">$${prod.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})} <span class="text-[9px] font-normal text-gray-400">${esPesable(prod) ? 'x Kg' : ''}</span></p>
+                    
+                    <p class="text-[20px] font-black text-blue-700 mt-auto leading-none">$${prod.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})} <span class="text-[10px] font-normal text-gray-400">${esPesable(prod) ? 'x Kg' : ''}</span></p>
+                
                 </div>
                 <div class="mt-2 ${colorBoton} rounded-full py-1.5 text-center text-[10px] font-bold border">
                     ${prod.cantidad > 0 ? `MODIFICAR` : `AGREGAR +`}
