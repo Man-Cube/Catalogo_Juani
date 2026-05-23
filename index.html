@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Autoservicio Juani - Catálogo</title>
-    
+
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00388c">
     <link rel="apple-touch-icon" href="icon.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
+
     <style>
         body { background-color: #f0f4f8; -webkit-tap-highlight-color: transparent; }
         .bg-juani-blue { background-color: #00388c; }
@@ -173,7 +173,7 @@
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(e => {}); }); }
 
         const URL_CSV_PLANILLA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6vRsDn1Xlsgb0Phw2y26b9ZSWM7ZfYf933MyKKm5Yncxihx90-vqhCHI2OukHoEVWcb2T4Wpi0RsX/pub?output=csv";
-        
+
         let BD_PRODUCTOS = [];
         let CATEGORIAS_DESTACADAS = [];
         let categoriaSeleccionada = "TODOS";
@@ -216,7 +216,7 @@
             const cat = (prod.categoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const sub = (prod.subcategoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const nom = (prod.nombre || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            
+
             const keywords = ['fiambre', 'fresco', 'carniceria', 'verduleria', 'pesable', 'queso', 'jamon', 'salame', 'mortadela', 'paleta', 'salchichon', 'panceta', 'bondiola'];
             return keywords.some(kw => cat.includes(kw) || sub.includes(kw) || nom.includes(kw));
         }
@@ -236,7 +236,7 @@
             cerrarModalProductoVisualmente();
             cerrarModalVaciar();
             cerrarAvisoPrecio();
-            
+
             const hash = window.location.hash;
             if (hash === '#carrito') {
                 document.getElementById('pantalla-catalogo').classList.add('hidden');
@@ -256,7 +256,7 @@
             try {
                 const respuesta = await fetch(URL_CSV_PLANILLA + "&t=" + new Date().getTime());
                 const textoCSV = await respuesta.text();
-                
+
                 Papa.parse(textoCSV, {
                     header: true, 
                     skipEmptyLines: true,
@@ -319,7 +319,7 @@
                                 cantidad: 0
                             };
                         });
-                        
+
                         // Cargamos la memoria antes de renderizar
                         cargarCarritoDeStorage();
 
@@ -349,11 +349,11 @@
             const barra = document.getElementById('barra-categorias');
             const categoriasUnicas = ["TODOS", ...CATEGORIAS_DESTACADAS];
             barra.innerHTML = '';
-            
+
             categoriasUnicas.forEach(cat => {
                 const btn = document.createElement('button');
                 btn.id = `cat-${cat}`;
-                
+
                 let icono = '📦';
                 if (cat === 'TODOS') icono = '✨';
                 if (cat.toLowerCase().includes('almacen')) icono = '🥫';
@@ -381,7 +381,7 @@
             const barra = document.getElementById('barra-subcategorias');
             barra.innerHTML = '';
             const subcategoriasUnicas = ["TODOS", ...new Set(productosFiltrados.map(p => p.subcategoria))];
-            
+
             if (subcategoriasUnicas.length <= 2 && subcategoriasUnicas.includes("General")) {
                 barra.classList.add('hidden');
                 return;
@@ -400,15 +400,15 @@
         }
 
         function generarHTMLTarjeta(prod, modo) {
-            const esOferta = esProductoDestacado(prod);
             const tienePromoReal = prod.promo_cant > 0 && prod.promo_precio > 0;
+            const esOferta = tienePromoReal || prod.categoria.toLowerCase().includes('destacad') || prod.categoria.toLowerCase().includes('promo');
 
             const elementoImagen = prod.imagen ? 
                 `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
                 `<div class="text-4xl text-gray-300">📦</div>`;
 
             const bordeClase = esOferta ? "border-2 border-red-500 shadow-[0_0_10px_rgba(229,57,53,0.15)]" : "border border-gray-100";
-            
+
             const clasesContenedor = modo === 'carrusel' 
                 ? `bg-white rounded-2xl shadow-sm ${bordeClase} p-2 flex flex-col relative w-[140px] shrink-0 snap-start cursor-pointer transition-transform active:scale-95 ${esOferta ? 'mt-2 ml-2' : ''}` 
                 : `bg-white rounded-2xl shadow-sm ${bordeClase} p-2 flex flex-col relative animate-fade-in h-full cursor-pointer ${esOferta ? 'mt-2 ml-2' : ''}`;
@@ -440,9 +440,7 @@
                 </div>
                 <div class="flex flex-col flex-1 mt-1">
                     <h3 class="text-[11px] leading-tight font-bold text-gray-800 line-clamp-2 min-h-[28px] mb-1">${prod.nombre.toUpperCase()}</h3>
-                    
-                    <p class="text-[20px] font-black text-blue-700 mt-auto leading-none">$${prod.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})} <span class="text-[10px] font-normal text-gray-400">${esPesable(prod) ? 'x Kg' : ''}</span></p>
-                
+                    <p class="text-[14px] font-extrabold text-juani-blue mt-auto">$${prod.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})} <span class="text-[9px] font-normal text-gray-400">${esPesable(prod) ? 'x Kg' : ''}</span></p>
                 </div>
                 <div class="mt-2 ${colorBoton} rounded-full py-1.5 text-center text-[10px] font-bold border">
                     ${prod.cantidad > 0 ? `MODIFICAR` : `AGREGAR +`}
@@ -473,7 +471,7 @@
             if (categoriaSeleccionada === "TODOS") {
                 barraSub.classList.add('hidden');
                 contenedor.className = "pb-24 max-w-md mx-auto w-full flex flex-col gap-6 pt-2 animate-fade-in";
-                
+
                 CATEGORIAS_DESTACADAS.forEach(cat => {
                     const prodsCat = BD_PRODUCTOS.filter(p => p.categoria.toLowerCase() === cat.toLowerCase());
                     if(prodsCat.length > 0) {
@@ -553,14 +551,14 @@
             cantTemporalModal = productoAbierto.cantidad > 0 ? productoAbierto.cantidad : paso;
 
             document.getElementById('modal-titulo').innerText = productoAbierto.nombre;
-            
+
             let textoPrecio = `Precio ${esPesable(productoAbierto) ? 'por Kilo' : 'por unidad'}: $${productoAbierto.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
             if (productoAbierto.promo_cant > 0) {
                 textoPrecio += ` <span class="text-green-600 font-bold ml-1">(🔥 Llevá ${esPesable(productoAbierto) && productoAbierto.promo_cant < 1 ? (productoAbierto.promo_cant * 1000) + 'g' : productoAbierto.promo_cant} x $${productoAbierto.promo_precio.toLocaleString('es-AR')})</span>`;
             }
             document.getElementById('modal-precio-unitario').innerHTML = textoPrecio;
             document.getElementById('modal-desc').innerText = productoAbierto.descripcion;
-            
+
             document.getElementById('modal-img-container').innerHTML = productoAbierto.imagen ? 
                 `<img id="img-vuelo-origen" src="${productoAbierto.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
                 `<div id="img-vuelo-origen" class="text-7xl text-gray-300">📦</div>`;
@@ -584,7 +582,7 @@
             const paso = obtenerPaso(productoAbierto);
             let nueva = cantTemporalModal + (cambio * paso);
             nueva = parseFloat(nueva.toFixed(2)); 
-            
+
             if (nueva > productoAbierto.stockDisponible) {
                 nueva = productoAbierto.stockDisponible;
                 mostrarToastStock(productoAbierto.stockDisponible + (esPesable(productoAbierto) ? " kg" : " u."));
@@ -605,15 +603,15 @@
             if(isNaN(nueva) || nueva < 0) nueva = 0;
             nueva = parseFloat(nueva.toFixed(2));
             if(nueva > 999) nueva = 999;
-            
+
             if (nueva > productoAbierto.stockDisponible) {
                 nueva = productoAbierto.stockDisponible;
                 mostrarToastStock(productoAbierto.stockDisponible);
             }
-            
+
             cantTemporalModal = nueva;
             actualizarVistaTemporalModal();
-            
+
             if (nueva === 0 && productoAbierto.cantidad > 0) {
                 document.getElementById('btn-confirmar-modal').innerHTML = `<span>Quitar del changuito</span><span class="text-xl">🗑️</span>`;
             }
@@ -621,7 +619,7 @@
 
         function actualizarVistaTemporalModal() {
             document.getElementById('modal-temp-cant').value = cantTemporalModal;
-            
+
             let sub = 0;
             if (productoAbierto.promo_cant > 0 && cantTemporalModal >= productoAbierto.promo_cant) {
                 let combos = Math.floor(cantTemporalModal / productoAbierto.promo_cant);
@@ -655,7 +653,7 @@
             const rectDestino = iconDestino.getBoundingClientRect();
             const clon = imgOrigen.cloneNode(true);
             clon.classList.add('flying-item');
-            
+
             if(clon.tagName === 'DIV') {
                 clon.style.width = rectOrigen.width + 'px';
                 clon.style.height = rectOrigen.height + 'px';
@@ -791,7 +789,7 @@
             carrito.forEach(prod => {
                 let sub = 0;
                 let textoPromo = '';
-                
+
                 if (prod.promo_cant > 0 && prod.cantidad >= prod.promo_cant) {
                     let combos = Math.floor(prod.cantidad / prod.promo_cant);
                     let sueltos = parseFloat((prod.cantidad - (combos * prod.promo_cant)).toFixed(2));
@@ -800,7 +798,7 @@
                 } else {
                     sub = prod.precio * prod.cantidad;
                 }
-                
+
                 subtotalCarritoPuro += sub;
 
                 const elementoImagen = prod.imagen ? 
@@ -839,7 +837,7 @@
                 const paso = obtenerPaso(prod);
                 let nuevaCant = prod.cantidad + (cambio * paso);
                 nuevaCant = parseFloat(nuevaCant.toFixed(2));
-                
+
                 if (nuevaCant > prod.stockDisponible) {
                     nuevaCant = prod.stockDisponible;
                     mostrarToastStock(prod.stockDisponible + (esPesable(prod) ? " kg" : " u."));
@@ -913,7 +911,7 @@
                     transformHeader: function(header) { return header.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); },
                     complete: function(results) {
                         const datosFrescos = results.data;
-                        
+
                         carrito.forEach(itemChango => {
                             const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
                             if(itemFresco && itemFresco.precio) {
@@ -956,11 +954,11 @@
         function enviarWhatsAppFinal(carrito) {
             let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`;
             mensaje += `🛒 *MI CHANGUITO:*\n`;
-            
+
             carrito.forEach(item => {
                 let sub = 0;
                 const unidadMedida = esPesable(item) ? 'kg' : 'unid.';
-                
+
                 if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) {
                     let combos = Math.floor(item.cantidad / item.promo_cant);
                     let sueltos = parseFloat((item.cantidad - (combos * item.promo_cant)).toFixed(2));
@@ -982,12 +980,12 @@
             const textoPagoElegido = selectPago.options[selectPago.selectedIndex].text;
             const valorPagoElegido = selectPago.value;
             mensaje += `💳 *MEDIO DE PAGO:* ${textoPagoElegido}\n\n`;
-            
+
             let totalFinal = subtotalCarritoPuro;
             if(valorPagoElegido === 'credito') { totalFinal = totalFinal * 1.10; }
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
-            
+
             const NUMERO_TELEFONO_JUANI = "5491154841973"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
