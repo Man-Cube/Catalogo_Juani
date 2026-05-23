@@ -134,7 +134,7 @@
                     <span class="text-sm font-bold text-gray-400">Cant:</span>
                     <div class="flex items-center bg-gray-50 rounded-2xl border border-gray-200 p-1">
                         <button onclick="ajustarTempCant(-1)" class="w-12 h-12 rounded-xl bg-white text-juani-blue shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">-</button>
-                        <input type="text" id="modal-temp-cant" oninput="ingresoManualModal(this.value)" onfocus="document.getElementById('modal-producto').style.paddingBottom = '12vh';" onblur="document.getElementById('modal-producto').style.paddingBottom = '0';" class="font-black text-gray-800 text-xl w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
+                        <input type="text" inputmode="decimal" id="modal-temp-cant" onchange="ingresoManualModal(this.value)" onfocus="document.getElementById('modal-producto').style.paddingBottom = '12vh';" onblur="document.getElementById('modal-producto').style.paddingBottom = '0';" class="font-black text-gray-800 text-xl w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
                         <button onclick="ajustarTempCant(1)" class="w-12 h-12 rounded-xl bg-juani-blue text-white shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">+</button>
                     </div>
                 </div>
@@ -184,14 +184,20 @@
         let subtotalCarritoPuro = 0;
         let modoEntrega = 'retiro';
 
+        // ====== DETECTOR DE PESABLES REFORZADO ======
+        // Ahora lee categoría, subcategoría Y nombre del producto para no fallar si lo pones en Ofertas
         function esPesable(prod) {
-            if (!prod || !prod.categoria) return false;
-            const cat = prod.categoria.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return cat.includes('fiambre') || cat.includes('fresco') || cat.includes('carniceria') || cat.includes('verduleria') || cat.includes('pesable') || cat.includes('queso');
+            if (!prod) return false;
+            const cat = (prod.categoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const sub = (prod.subcategoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const nom = (prod.nombre || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
+            const keywords = ['fiambre', 'fresco', 'carniceria', 'verduleria', 'pesable', 'queso', 'jamon', 'salame', 'mortadela', 'paleta', 'salchichon', 'panceta', 'bondiola'];
+            return keywords.some(kw => cat.includes(kw) || sub.includes(kw) || nom.includes(kw));
         }
 
         function obtenerPaso(prod) {
-            return esPesable(prod) ? 0.1 : 1; 
+            return esPesable(prod) ? 0.25 : 1; // Sube de a cuarto kilo
         }
 
         function mostrarToastStock(stockDisponible) {
@@ -365,10 +371,7 @@
         }
 
         function generarHTMLTarjeta(prod, modo) {
-            // 1. Vemos si tiene una promo real armada en el Excel
             const tienePromoReal = prod.promo_cant > 0 && prod.promo_precio > 0;
-            
-            // 2. Es oferta si tiene promo real O si lo pusiste en esas categorías
             const esOferta = tienePromoReal || prod.categoria.toLowerCase().includes('destacad') || prod.categoria.toLowerCase().includes('promo');
 
             const elementoImagen = prod.imagen ? 
@@ -385,20 +388,17 @@
                 ? `<div class="absolute top-1 right-1 bg-juani-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md border border-white z-20">${esPesable(prod) ? prod.cantidad + ' kg' : prod.cantidad}</div>` 
                 : '';
 
-            // ====== LA MAGIA DEL CARTELITO DINÁMICO ======
             let textoBadge = "OFERTA";
             if (tienePromoReal) {
-                // Si es pesable y la cantidad es menor a 1 kilo, lo pasamos a gramos para que quede fachero
                 let cantTxt = esPesable(prod) 
                     ? (prod.promo_cant < 1 ? (prod.promo_cant * 1000) + 'g' : prod.promo_cant + 'kg') 
                     : prod.promo_cant;
-                
                 textoBadge = `${cantTxt} x $${prod.promo_precio.toLocaleString('es-AR')}`;
             }
 
-            // Agregamos "whitespace-nowrap" para que no se parta el texto en dos renglones
+            // ACÁ EL CARTEL XXL DE FUEGO CON BORDES MÁS NOTORIOS
             const badgeFuego = esOferta 
-                ? `<div class="absolute -top-2 -left-2 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-br-lg rounded-tl-lg shadow-md z-20 uppercase tracking-widest whitespace-nowrap">🔥 ${textoBadge}</div>`
+                ? `<div class="absolute -top-3 -left-3 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[12px] font-black px-3 py-1 rounded-br-xl rounded-tl-xl shadow-lg z-20 uppercase tracking-wide whitespace-nowrap border border-red-400">🔥 ${textoBadge}</div>`
                 : '';
 
             const colorBoton = esOferta ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-200';
@@ -513,13 +513,14 @@
             productoAbierto = BD_PRODUCTOS.find(p => p.id === id);
             if(!productoAbierto) return;
 
-            cantTemporalModal = productoAbierto.cantidad > 0 ? productoAbierto.cantidad : (esPesable(productoAbierto) ? 0.1 : 1);
+            const paso = obtenerPaso(productoAbierto);
+            cantTemporalModal = productoAbierto.cantidad > 0 ? productoAbierto.cantidad : paso;
 
             document.getElementById('modal-titulo').innerText = productoAbierto.nombre;
             
             let textoPrecio = `Precio ${esPesable(productoAbierto) ? 'por Kilo' : 'por unidad'}: $${productoAbierto.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
             if (productoAbierto.promo_cant > 0) {
-                textoPrecio += ` <span class="text-green-600 font-bold ml-1">(🔥 Llevá ${esPesable(productoAbierto) ? (productoAbierto.promo_cant * 1000) + 'g' : productoAbierto.promo_cant} x $${productoAbierto.promo_precio.toLocaleString('es-AR')})</span>`;
+                textoPrecio += ` <span class="text-green-600 font-bold ml-1">(🔥 Llevá ${esPesable(productoAbierto) && productoAbierto.promo_cant < 1 ? (productoAbierto.promo_cant * 1000) + 'g' : productoAbierto.promo_cant} x $${productoAbierto.promo_precio.toLocaleString('es-AR')})</span>`;
             }
             document.getElementById('modal-precio-unitario').innerHTML = textoPrecio;
             document.getElementById('modal-desc').innerText = productoAbierto.descripcion;
@@ -783,7 +784,7 @@
                             <span class="text-sm font-black text-juani-blue">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
                             <div class="flex items-center bg-gray-50 rounded-lg border border-gray-200 p-0.5">
                                 <button onclick="modificarEnCheckout(${prod.id}, -1)" class="w-8 h-8 rounded-md bg-white text-gray-600 shadow-sm flex items-center justify-center font-bold">-</button>
-                                <input type="text" value="${prod.cantidad}" onchange="ingresoManualCheckout(${prod.id}, this.value)" class="font-bold text-gray-800 text-xs w-12 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
+                                <input type="text" inputmode="decimal" value="${prod.cantidad}" onchange="ingresoManualCheckout(${prod.id}, this.value)" class="font-bold text-gray-800 text-xs w-12 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
                                 <button onclick="modificarEnCheckout(${prod.id}, 1)" class="w-8 h-8 rounded-md bg-white text-gray-600 shadow-sm flex items-center justify-center font-bold">+</button>
                             </div>
                         </div>
