@@ -185,7 +185,6 @@
         let subtotalCarritoPuro = 0;
         let modoEntrega = 'retiro';
 
-        // LocalStorage Memoria
         function guardarCarritoEnStorage() {
             const changoGuardado = BD_PRODUCTOS.filter(p => p.cantidad > 0).map(p => ({ codigo: p.codigo, cantidad: p.cantidad }));
             localStorage.setItem('changuito_juani', JSON.stringify(changoGuardado));
@@ -210,20 +209,25 @@
             }
         }
 
-        // Detectores para Fiambres y Ofertas
         function esPesable(prod) {
             if (!prod) return false;
             const cat = (prod.categoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const sub = (prod.subcategoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const nom = (prod.nombre || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
             const keywords = ['fiambre', 'fresco', 'carniceria', 'verduleria', 'pesable', 'queso', 'jamon', 'salame', 'mortadela', 'paleta', 'salchichon', 'panceta', 'bondiola'];
             return keywords.some(kw => cat.includes(kw) || sub.includes(kw) || nom.includes(kw));
         }
 
-        function esProductoDestacado(prod) {
-            const tienePromoReal = prod.promo_cant > 0 && prod.promo_precio > 0;
+        // ====== SEPARACIÓN DE PROMOS Y DESTACADOS ======
+        function esPromo(prod) {
+            return prod.promo_cant > 0 && prod.promo_precio > 0;
+        }
+
+        function esDestacado(prod) {
+            const cat = (prod.categoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const subcat = (prod.subcategoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return tienePromoReal || subcat.includes('destacad') || subcat.includes('promo');
+            return cat.includes('destacad') || subcat.includes('destacad');
         }
 
         function obtenerPaso(prod) { return esPesable(prod) ? 0.25 : 1; }
@@ -235,7 +239,6 @@
             setTimeout(() => { toast.classList.add('opacity-0'); }, 3500);
         }
 
-        // Navegación con botón atrás del celular
         window.addEventListener('popstate', function(event) {
             if (!document.getElementById('modal-producto').classList.contains('hidden')) {
                 cerrarModalProductoVisualmente();
@@ -330,7 +333,14 @@
 
         function renderizarBarraCategorias() {
             const barra = document.getElementById('barra-categorias');
-            const categoriasUnicas = ["TODOS", "DESTACADOS", ...CATEGORIAS_DESTACADAS];
+            const hayPromos = BD_PRODUCTOS.some(p => esPromo(p));
+            const hayDestacados = BD_PRODUCTOS.some(p => esDestacado(p));
+            
+            let categoriasUnicas = ["TODOS"];
+            if(hayPromos) categoriasUnicas.push("PROMOS");
+            if(hayDestacados) categoriasUnicas.push("DESTACADOS");
+            categoriasUnicas = categoriasUnicas.concat(CATEGORIAS_DESTACADAS);
+
             barra.innerHTML = '';
             
             categoriasUnicas.forEach(cat => {
@@ -339,7 +349,8 @@
                 
                 let icono = '📦';
                 if (cat === 'TODOS') icono = '✨';
-                if (cat === 'DESTACADOS') icono = '🔥';
+                if (cat === 'PROMOS') icono = '🔥';
+                if (cat === 'DESTACADOS') icono = '⭐';
                 if (cat.toLowerCase().includes('almacen')) icono = '🥫';
                 if (cat.toLowerCase().includes('bebida')) icono = '🥤';
                 if (cat.toLowerCase().includes('fiambre')) icono = '🧀';
@@ -348,7 +359,7 @@
 
                 btn.className = `flex flex-col items-center gap-1 shrink-0 transition-all ${categoriaSeleccionada.toLowerCase() === cat.toLowerCase() ? 'opacity-100 scale-105' : 'opacity-70'}`;
                 btn.innerHTML = `
-                    <div class="w-12 h-12 ${cat === 'TODOS' || cat === 'DESTACADOS' ? 'bg-juani-red' : 'bg-blue-800'} rounded-full flex items-center justify-center text-xl shadow-md border-2 border-white overflow-hidden p-1">
+                    <div class="w-12 h-12 ${cat === 'TODOS' || cat === 'PROMOS' ? 'bg-juani-red' : (cat === 'DESTACADOS' ? 'bg-yellow-500' : 'bg-blue-800')} rounded-full flex items-center justify-center text-xl shadow-md border-2 border-white overflow-hidden p-1">
                         <span class="text-xl">${icono}</span>
                     </div>
                     <span class="text-white text-[10px] font-bold uppercase">${cat}</span>
@@ -381,34 +392,35 @@
         }
 
         function generarHTMLTarjeta(prod, modo) {
-            const esOferta = esProductoDestacado(prod);
-            const tienePromoReal = prod.promo_cant > 0 && prod.promo_precio > 0;
+            const esItemPromo = esPromo(prod);
+            const esItemDestacado = esDestacado(prod);
+            const esOfertaVisual = esItemPromo || esItemDestacado;
 
             const elementoImagen = prod.imagen ? 
                 `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
                 `<div class="text-4xl text-gray-300">📦</div>`;
 
-            const bordeClase = esOferta ? "border-2 border-red-500 shadow-[0_0_10px_rgba(229,57,53,0.15)]" : "border border-gray-100";
+            let bordeClase = "border border-gray-100";
+            if (esItemPromo) bordeClase = "border-2 border-red-500 shadow-[0_0_10px_rgba(229,57,53,0.15)]";
+            else if (esItemDestacado) bordeClase = "border-2 border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.15)]";
             
             const clasesContenedor = modo === 'carrusel' 
-                ? `bg-white rounded-2xl shadow-sm ${bordeClase} p-2 flex flex-col relative w-[140px] shrink-0 snap-start cursor-pointer transition-transform active:scale-95 ${esOferta ? 'mt-2 ml-2' : ''}` 
-                : `bg-white rounded-2xl shadow-sm ${bordeClase} p-2 flex flex-col relative animate-fade-in h-full cursor-pointer ${esOferta ? 'mt-2 ml-2' : ''}`;
+                ? `bg-white rounded-2xl shadow-sm ${bordeClase} p-2 flex flex-col relative w-[140px] shrink-0 snap-start cursor-pointer transition-transform active:scale-95 ${esOfertaVisual ? 'mt-2 ml-2' : ''}` 
+                : `bg-white rounded-2xl shadow-sm ${bordeClase} p-2 flex flex-col relative animate-fade-in h-full cursor-pointer ${esOfertaVisual ? 'mt-2 ml-2' : ''}`;
 
             const badgeCantidad = prod.cantidad > 0 
                 ? `<div class="absolute top-1 right-1 bg-juani-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md border border-white z-20">${esPesable(prod) ? prod.cantidad + ' kg' : prod.cantidad}</div>` 
                 : '';
 
-            let textoBadge = "OFERTA";
-            if (tienePromoReal) {
+            let badgeFuego = '';
+            if (esItemPromo) {
                 let cantTxt = esPesable(prod) ? (prod.promo_cant < 1 ? (prod.promo_cant * 1000) + 'g' : prod.promo_cant + 'kg') : prod.promo_cant;
-                textoBadge = `${cantTxt} x $${prod.promo_precio.toLocaleString('es-AR')}`;
+                badgeFuego = `<div class="absolute -top-3 -left-3 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[12px] font-black px-3 py-1 rounded-br-xl rounded-tl-xl shadow-lg z-20 uppercase tracking-wide whitespace-nowrap border border-red-400">🔥 ${cantTxt} x $${prod.promo_precio.toLocaleString('es-AR')}</div>`;
+            } else if (esItemDestacado) {
+                badgeFuego = `<div class="absolute -top-3 -left-3 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white text-[10px] font-black px-3 py-1 rounded-br-xl rounded-tl-xl shadow-lg z-20 uppercase tracking-wide whitespace-nowrap border border-yellow-300 shadow-sm text-shadow">⭐ DESTACADO</div>`;
             }
 
-            const badgeFuego = esOferta 
-                ? `<div class="absolute -top-3 -left-3 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[12px] font-black px-3 py-1 rounded-br-xl rounded-tl-xl shadow-lg z-20 uppercase tracking-wide whitespace-nowrap border border-red-400">🔥 ${textoBadge}</div>`
-                : '';
-
-            const colorBoton = esOferta ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-200';
+            const colorBoton = esItemPromo ? 'bg-red-50 text-red-600 border-red-100' : (esItemDestacado ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 'bg-gray-50 text-gray-500 border-gray-200');
 
             return `
             <div class="${clasesContenedor}" onclick="abrirModalProducto(${prod.id})">
@@ -435,8 +447,13 @@
             contenedor.innerHTML = '';
             const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
 
+            // LUPA MEJORADA: AHORA BUSCA TAMBIÉN EN SUBCATEGORÍAS
             if (busqueda !== "") {
-                const filtrados = BD_PRODUCTOS.filter(p => p.nombre.toLowerCase().includes(busqueda) || p.codigo.includes(busqueda));
+                const filtrados = BD_PRODUCTOS.filter(p => 
+                    p.nombre.toLowerCase().includes(busqueda) || 
+                    p.codigo.includes(busqueda) ||
+                    p.subcategoria.toLowerCase().includes(busqueda)
+                );
                 barraSub.classList.add('hidden');
                 if(filtrados.length === 0) {
                     contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full";
@@ -449,24 +466,42 @@
                 return;
             }
 
-            if (categoriaSeleccionada === "TODOS" || categoriaSeleccionada === "DESTACADOS") {
+            if (categoriaSeleccionada === "TODOS" || categoriaSeleccionada === "PROMOS" || categoriaSeleccionada === "DESTACADOS") {
                 barraSub.classList.add('hidden');
                 contenedor.className = "pb-24 max-w-md mx-auto w-full flex flex-col gap-6 pt-2 animate-fade-in";
                 
-                const ofertasDelDia = BD_PRODUCTOS.filter(p => esProductoDestacado(p));
+                const listaPromos = BD_PRODUCTOS.filter(p => esPromo(p));
+                const listaDestacados = BD_PRODUCTOS.filter(p => esDestacado(p));
                 
-                if(ofertasDelDia.length > 0 && categoriaSeleccionada === "TODOS") {
-                    let htmlCarruselOfertas = `
+                // Si tocó el botón exclusivo de PROMOS
+                if(categoriaSeleccionada === "PROMOS") {
+                    contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
+                    listaPromos.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
+                    actualizarIconoCarritoFlotante();
+                    return; 
+                }
+
+                // Si tocó el botón exclusivo de DESTACADOS
+                if(categoriaSeleccionada === "DESTACADOS") {
+                    contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
+                    listaDestacados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
+                    actualizarIconoCarritoFlotante();
+                    return; 
+                }
+
+                // SI ESTÁ EN "TODOS", MOSTRAMOS LOS CARRUSELES
+                if(listaPromos.length > 0 && categoriaSeleccionada === "TODOS") {
+                    let htmlCarruselPromos = `
                     <div class="flex flex-col w-full">
                         <div class="flex justify-between items-end px-4 mb-3">
-                            <h2 class="text-lg font-black text-juani-red uppercase tracking-tight">🔥 DESTACADOS DEL DÍA</h2>
-                            <button onclick="seleccionarCategoria('DESTACADOS')" class="text-juani-red text-xs font-bold bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Ver todas</button>
+                            <h2 class="text-lg font-black text-juani-red uppercase tracking-tight">🔥 PROMOS DEL DÍA</h2>
+                            <button onclick="seleccionarCategoria('PROMOS')" class="text-juani-red text-xs font-bold bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Ver todas</button>
                         </div>
                         <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">
                     `;
-                    ofertasDelDia.slice(0, 10).forEach(prod => { htmlCarruselOfertas += generarHTMLTarjeta(prod, 'carrusel'); });
-                    htmlCarruselOfertas += `
-                            <div onclick="seleccionarCategoria('DESTACADOS')" class="bg-red-50 rounded-2xl border border-red-100 p-2 flex flex-col items-center justify-center w-[140px] shrink-0 snap-start cursor-pointer active:scale-95 transition-transform h-auto min-h-[160px] mt-2 ml-2">
+                    listaPromos.slice(0, 10).forEach(prod => { htmlCarruselPromos += generarHTMLTarjeta(prod, 'carrusel'); });
+                    htmlCarruselPromos += `
+                            <div onclick="seleccionarCategoria('PROMOS')" class="bg-red-50 rounded-2xl border border-red-100 p-2 flex flex-col items-center justify-center w-[140px] shrink-0 snap-start cursor-pointer active:scale-95 transition-transform h-auto min-h-[160px] mt-2 ml-2">
                                 <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3">
                                     <span class="text-xl">🔥</span>
                                 </div>
@@ -474,14 +509,29 @@
                             </div>
                         </div>
                     </div>`;
-                    contenedor.innerHTML += htmlCarruselOfertas;
+                    contenedor.innerHTML += htmlCarruselPromos;
                 }
 
-                if(categoriaSeleccionada === "DESTACADOS") {
-                    contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
-                    ofertasDelDia.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
-                    actualizarIconoCarritoFlotante();
-                    return; 
+                if(listaDestacados.length > 0 && categoriaSeleccionada === "TODOS") {
+                    let htmlCarruselDestacados = `
+                    <div class="flex flex-col w-full">
+                        <div class="flex justify-between items-end px-4 mb-3">
+                            <h2 class="text-lg font-black text-yellow-600 uppercase tracking-tight">⭐ DESTACADOS</h2>
+                            <button onclick="seleccionarCategoria('DESTACADOS')" class="text-yellow-600 text-xs font-bold bg-yellow-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Ver todos</button>
+                        </div>
+                        <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">
+                    `;
+                    listaDestacados.slice(0, 10).forEach(prod => { htmlCarruselDestacados += generarHTMLTarjeta(prod, 'carrusel'); });
+                    htmlCarruselDestacados += `
+                            <div onclick="seleccionarCategoria('DESTACADOS')" class="bg-yellow-50 rounded-2xl border border-yellow-100 p-2 flex flex-col items-center justify-center w-[140px] shrink-0 snap-start cursor-pointer active:scale-95 transition-transform h-auto min-h-[160px] mt-2 ml-2">
+                                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3">
+                                    <span class="text-xl">⭐</span>
+                                </div>
+                                <span class="text-xs font-bold text-yellow-600 uppercase text-center">Ver todos los destacados</span>
+                            </div>
+                        </div>
+                    </div>`;
+                    contenedor.innerHTML += htmlCarruselDestacados;
                 }
                 
                 CATEGORIAS_DESTACADAS.forEach(cat => {
@@ -535,7 +585,6 @@
             categoriaSeleccionada = cat;
             subCategoriaSeleccionada = "TODOS";
             
-            // Lupa vacía al cambiar pasillo
             document.getElementById('buscador-cliente').value = "";
 
             renderizarBarraCategorias();
@@ -839,6 +888,7 @@
             });
             actualizarTotalFinal(); 
         }
+
         function modificarEnCheckout(id, cambio) {
             const index = BD_PRODUCTOS.findIndex(p => p.id === id);
             if(index !== -1) {
@@ -997,7 +1047,7 @@
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491100000000"; 
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
