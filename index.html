@@ -19,7 +19,6 @@
         .text-juani-blue { color: #00388c; }
         .bg-juani-red { background-color: #e53935; }
         
-        /* CLASE ESPECIAL PARA LA FUENTE DEL LOGO */
         .fuente-logo { font-family: 'Montserrat', sans-serif; }
         
         .hide-scroll::-webkit-scrollbar { display: none; }
@@ -222,7 +221,6 @@
             const cat = (prod.categoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const sub = (prod.subcategoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const nom = (prod.nombre || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            
             const keywords = ['fiambre', 'fresco', 'carniceria', 'verduleria', 'pesable', 'queso', 'jamon', 'salame', 'mortadela', 'paleta', 'salchichon', 'panceta', 'bondiola'];
             return keywords.some(kw => cat.includes(kw) || sub.includes(kw) || nom.includes(kw));
         }
@@ -234,7 +232,11 @@
         function esDestacado(prod) {
             const cat = (prod.categoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const subcat = (prod.subcategoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            return cat.includes('destacad') || subcat.includes('destacad');
+            const desc = (prod.descripcion || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const dest = (prod.destacado_col || '').toLowerCase().trim();
+            
+            // Acá busca la palabra destacado en varios lados o lee la columna nueva "destacado" si existe
+            return dest === 'si' || dest === 'sí' || dest === 'x' || cat.includes('destacad') || subcat.includes('destacad') || desc.includes('destacad');
         }
 
         function obtenerPaso(prod) { return esPesable(prod) ? 0.25 : 1; }
@@ -320,6 +322,7 @@
                                 descripcion: item.descripcion ? item.descripcion.trim() : 'Sin descripción adicional.',
                                 promo_cant: promoCantLimpia,
                                 promo_precio: promoLimpia,
+                                destacado_col: item.destacado ? String(item.destacado).trim() : '',
                                 stockDisponible: stockReal,
                                 cantidad: 0
                             };
@@ -354,23 +357,21 @@
                 const btn = document.createElement('button');
                 btn.id = `cat-${cat}`;
                 
-                // ====== ACÁ DEFINIMOS LAS FOTOS REALISTAS ======
-                let imgUrl = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&q=80'; // Foto Súper Genérica
+                let imgUrl = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&q=80'; 
                 
-                if (cat === 'TODOS') imgUrl = 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&q=80'; // Canasto
-                if (cat === 'PROMOS') imgUrl = 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=150&q=80'; // Etiqueta roja
-                if (cat === 'DESTACADOS') imgUrl = 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=150&q=80'; // Estrella/Premium
-                if (cat.toLowerCase().includes('almacen')) imgUrl = 'https://images.unsplash.com/photo-1584385002340-d724ac62728b?w=150&q=80'; // Latas/Fideos
-                if (cat.toLowerCase().includes('bebida')) imgUrl = 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=150&q=80'; // Botellas
-                if (cat.toLowerCase().includes('fiambre')) imgUrl = 'https://images.unsplash.com/photo-1628169112995-177218ac8632?w=150&q=80'; // Queso/Picada
-                if (cat.toLowerCase().includes('fresco')) imgUrl = 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?w=150&q=80'; // Verduras/Carne
-                if (cat.toLowerCase().includes('limpieza')) imgUrl = 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=150&q=80'; // Artículos de limpieza
+                if (cat === 'TODOS') imgUrl = 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&q=80';
+                if (cat === 'PROMOS') imgUrl = 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=150&q=80';
+                if (cat === 'DESTACADOS') imgUrl = 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=150&q=80';
+                if (cat.toLowerCase().includes('almacen')) imgUrl = 'https://images.unsplash.com/photo-1584385002340-d724ac62728b?w=150&q=80';
+                if (cat.toLowerCase().includes('bebida')) imgUrl = 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=150&q=80';
+                if (cat.toLowerCase().includes('fiambre')) imgUrl = 'https://images.unsplash.com/photo-1628169112995-177218ac8632?w=150&q=80';
+                if (cat.toLowerCase().includes('fresco')) imgUrl = 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?w=150&q=80';
+                if (cat.toLowerCase().includes('limpieza')) imgUrl = 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=150&q=80';
 
                 const isSelected = categoriaSeleccionada.toLowerCase() === cat.toLowerCase();
                 
                 btn.className = `flex flex-col items-center gap-1.5 shrink-0 transition-all ${isSelected ? 'opacity-100 scale-110 drop-shadow-md' : 'opacity-70'}`;
                 
-                // REEMPLAZAMOS EL CÍRCULO CON COLOR POR UN CÍRCULO CON LA FOTO (object-cover la recorta perfecto)
                 btn.innerHTML = `
                     <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md border-[3px] ${isSelected ? 'border-white' : 'border-transparent'} overflow-hidden bg-gray-200 transition-colors duration-300">
                         <img src="${imgUrl}" class="w-full h-full object-cover" alt="${cat}">
