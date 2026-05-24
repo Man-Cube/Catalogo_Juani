@@ -221,6 +221,7 @@
             const cat = (prod.categoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const sub = (prod.subcategoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const nom = (prod.nombre || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
             const keywords = ['fiambre', 'fresco', 'carniceria', 'verduleria', 'pesable', 'queso', 'jamon', 'salame', 'mortadela', 'paleta', 'salchichon', 'panceta', 'bondiola'];
             return keywords.some(kw => cat.includes(kw) || sub.includes(kw) || nom.includes(kw));
         }
@@ -235,7 +236,6 @@
             const desc = (prod.descripcion || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const dest = (prod.destacado_col || '').toLowerCase().trim();
             
-            // Acá busca la palabra destacado en varios lados o lee la columna nueva "destacado" si existe
             return dest === 'si' || dest === 'sí' || dest === 'x' || cat.includes('destacad') || subcat.includes('destacad') || desc.includes('destacad');
         }
 
@@ -328,6 +328,25 @@
                             };
                         });
                         
+                        // ====== ACÁ AGREGAMOS EL ORDENAMIENTO MAGISTRAL ======
+                        // Esto hace que en CUALQUIER pasillo, los destacados y promos aparezcan primeros.
+                        BD_PRODUCTOS.sort((a, b) => {
+                            const aDest = esDestacado(a);
+                            const bDest = esDestacado(b);
+                            const aPromo = esPromo(a);
+                            const bPromo = esPromo(b);
+
+                            let puntosA = (aDest ? 2 : 0) + (aPromo ? 2 : 0);
+                            let puntosB = (bDest ? 2 : 0) + (bPromo ? 2 : 0);
+
+                            if (puntosA !== puntosB) {
+                                return puntosB - puntosA; // Mayor puntaje primero
+                            }
+                            // Si empatan en importancia, se ordenan alfabéticamente
+                            return a.nombre.localeCompare(b.nombre);
+                        });
+                        // =======================================================
+
                         cargarCarritoDeStorage();
                         CATEGORIAS_DESTACADAS = [...new Set(BD_PRODUCTOS.map(p => p.categoria).filter(c => c && c.trim() !== '' && c.toLowerCase() !== 'otros' && !c.toLowerCase().includes('destacad') && !c.toLowerCase().includes('promo')))];
 
@@ -1057,7 +1076,7 @@
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
+            const NUMERO_TELEFONO_JUANI = "5491100000000"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
