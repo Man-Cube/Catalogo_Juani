@@ -88,10 +88,10 @@
                     <button id="btn-retiro" onclick="setEntrega('retiro')" class="bg-juani-blue text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-juani-blue transition-colors">Retiro en local</button>
                     <button id="btn-envio" onclick="setEntrega('envio')" class="bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors">Envío a domicilio</button>
                 </div>
-                <div id="div-direccion" class="hidden animate-slide-up">
-                    <input type="text" id="input-direccion" placeholder="Ej: Calle 14 Nro 1234, Barrio..." class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
-                </div>
-            </div>
+                <div id="div-direccion" class="hidden animate-slide-up flex flex-col gap-2">
+    <input type="text" id="input-nombre" placeholder="👤 Nombre y Apellido (Quien recibe)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
+    <input type="text" id="input-direccion" placeholder="📍 Dirección (Ej: Calle 14 Nro 1234, Barrio...)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
+</div>
 
             <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 shadow-sm">
                 <h3 class="font-bold text-gray-700 text-sm mb-3 uppercase flex items-center gap-2"><span class="text-lg">💳</span> Medio de Pago</h3>
@@ -995,9 +995,11 @@
                 }
             });
 
-            mensaje += `🚚 *ENTREGA:* ${modoEntrega === 'retiro' ? 'Retiro en el local' : 'Envío a domicilio'}\n`;
+           mensaje += `🚚 *ENTREGA:* ${modoEntrega === 'retiro' ? 'Retiro en el local' : 'Envío a domicilio'}\n`;
             if(modoEntrega === 'envio') {
+                const nombre = document.getElementById('input-nombre').value.trim() || 'No especificó nombre';
                 const direccion = document.getElementById('input-direccion').value.trim() || 'No especificó dirección';
+                mensaje += `👤 *Recibe:* ${nombre}\n`;
                 mensaje += `📍 *Dirección:* ${direccion}\n`;
             }
 
