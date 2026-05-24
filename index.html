@@ -9,6 +9,7 @@
     <meta name="theme-color" content="#00388c">
     <link rel="apple-touch-icon" href="icon.png">
 
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     
@@ -17,6 +18,10 @@
         .bg-juani-blue { background-color: #00388c; }
         .text-juani-blue { color: #00388c; }
         .bg-juani-red { background-color: #e53935; }
+        
+        /* CLASE ESPECIAL PARA LA FUENTE DEL LOGO */
+        .fuente-logo { font-family: 'Montserrat', sans-serif; }
+        
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes slideUpModal { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -33,22 +38,21 @@
         ¡Doña! Solo nos quedan X en stock.
     </div>
 
-        <button onclick="abrirPantallaCarrito()" id="btn-carrito-flotante" class="fixed top-4 right-4 z-[60] active:scale-95 transition-transform p-2 flex items-center justify-center">
+    <button onclick="abrirPantallaCarrito()" id="btn-carrito-flotante" class="fixed top-4 right-4 z-[60] active:scale-95 transition-transform p-2 flex items-center justify-center">
         <svg class="w-7 h-7 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
         <span id="badge-carrito" class="absolute top-0 right-0 bg-juani-red text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-md transform transition-transform hidden border-2 border-white">0</span>
     </button>
 
-
     <div id="pantalla-catalogo" class="block">
         <header class="bg-juani-blue sticky top-0 z-50 rounded-b-3xl shadow-lg pb-3">
-            <div class="flex flex-col items-center pt-4 pb-2">
-                <div class="flex items-center gap-2 pr-12">
-                    <span class="text-3xl" id="logo-contenedor">🏪</span>
+            <div class="flex flex-col items-center pt-5 pb-3">
+                <div class="flex items-center gap-3 pr-10">
+                    <span class="text-4xl" id="logo-contenedor">🏪</span>
                     <div class="flex flex-col">
-                        <h1 class="text-white text-xl font-extrabold leading-tight tracking-wide">Autoservicio Juani</h1>
-                        <span class="text-blue-200 text-[10px] font-semibold uppercase tracking-widest text-center">- Tu Súper de Barrio -</span>
+                        <h1 class="text-white text-2xl fuente-logo tracking-wide leading-none">Autoservicio Juani</h1>
+                        <span class="text-blue-200 text-[10px] font-semibold uppercase tracking-widest mt-1">- Tu Súper de Barrio -</span>
                     </div>
                 </div>
             </div>
@@ -62,8 +66,9 @@
 
             <div class="border-t border-blue-700/50 mx-4"></div>
 
-            <div class="flex gap-4 overflow-x-auto hide-scroll px-4 mt-4 pb-1" id="barra-categorias"></div>
-            <div id="barra-subcategorias" class="hidden flex gap-2 overflow-x-auto hide-scroll px-4 pb-2 pt-3 border-t border-blue-700/50 mt-3"></div>
+            <div class="flex gap-4 overflow-x-auto hide-scroll px-4 mt-3 pb-4 pt-2" id="barra-categorias"></div>
+            
+            <div id="barra-subcategorias" class="hidden flex gap-2 overflow-x-auto hide-scroll px-4 pb-2 pt-2 border-t border-blue-700/50 mt-1"></div>
         </header>
 
         <div id="loading-catalogo" class="p-10 text-center text-xs font-bold text-gray-400 flex flex-col items-center gap-2">
@@ -222,7 +227,6 @@
             return keywords.some(kw => cat.includes(kw) || sub.includes(kw) || nom.includes(kw));
         }
 
-        // ====== SEPARACIÓN DE PROMOS Y DESTACADOS ======
         function esPromo(prod) {
             return prod.promo_cant > 0 && prod.promo_precio > 0;
         }
@@ -350,22 +354,28 @@
                 const btn = document.createElement('button');
                 btn.id = `cat-${cat}`;
                 
-                let icono = '📦';
-                if (cat === 'TODOS') icono = '✨';
-                if (cat === 'PROMOS') icono = '🔥';
-                if (cat === 'DESTACADOS') icono = '⭐';
-                if (cat.toLowerCase().includes('almacen')) icono = '🥫';
-                if (cat.toLowerCase().includes('bebida')) icono = '🥤';
-                if (cat.toLowerCase().includes('fiambre')) icono = '🧀';
-                if (cat.toLowerCase().includes('fresco')) icono = '🥩';
-                if (cat.toLowerCase().includes('limpieza')) icono = '🧹';
+                // ====== ACÁ DEFINIMOS LAS FOTOS REALISTAS ======
+                let imgUrl = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&q=80'; // Foto Súper Genérica
+                
+                if (cat === 'TODOS') imgUrl = 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&q=80'; // Canasto
+                if (cat === 'PROMOS') imgUrl = 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=150&q=80'; // Etiqueta roja
+                if (cat === 'DESTACADOS') imgUrl = 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=150&q=80'; // Estrella/Premium
+                if (cat.toLowerCase().includes('almacen')) imgUrl = 'https://images.unsplash.com/photo-1584385002340-d724ac62728b?w=150&q=80'; // Latas/Fideos
+                if (cat.toLowerCase().includes('bebida')) imgUrl = 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=150&q=80'; // Botellas
+                if (cat.toLowerCase().includes('fiambre')) imgUrl = 'https://images.unsplash.com/photo-1628169112995-177218ac8632?w=150&q=80'; // Queso/Picada
+                if (cat.toLowerCase().includes('fresco')) imgUrl = 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?w=150&q=80'; // Verduras/Carne
+                if (cat.toLowerCase().includes('limpieza')) imgUrl = 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=150&q=80'; // Artículos de limpieza
 
-                btn.className = `flex flex-col items-center gap-1 shrink-0 transition-all ${categoriaSeleccionada.toLowerCase() === cat.toLowerCase() ? 'opacity-100 scale-105' : 'opacity-70'}`;
+                const isSelected = categoriaSeleccionada.toLowerCase() === cat.toLowerCase();
+                
+                btn.className = `flex flex-col items-center gap-1.5 shrink-0 transition-all ${isSelected ? 'opacity-100 scale-110 drop-shadow-md' : 'opacity-70'}`;
+                
+                // REEMPLAZAMOS EL CÍRCULO CON COLOR POR UN CÍRCULO CON LA FOTO (object-cover la recorta perfecto)
                 btn.innerHTML = `
-                    <div class="w-12 h-12 ${cat === 'TODOS' || cat === 'PROMOS' ? 'bg-juani-red' : (cat === 'DESTACADOS' ? 'bg-yellow-500' : 'bg-blue-800')} rounded-full flex items-center justify-center text-xl shadow-md border-2 border-white overflow-hidden p-1">
-                        <span class="text-xl">${icono}</span>
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md border-[3px] ${isSelected ? 'border-white' : 'border-transparent'} overflow-hidden bg-gray-200 transition-colors duration-300">
+                        <img src="${imgUrl}" class="w-full h-full object-cover" alt="${cat}">
                     </div>
-                    <span class="text-white text-[10px] font-bold uppercase">${cat}</span>
+                    <span class="text-white text-[10px] font-black uppercase tracking-wide drop-shadow-sm">${cat}</span>
                 `;
                 btn.onclick = () => seleccionarCategoria(cat);
                 barra.appendChild(btn);
@@ -450,7 +460,6 @@
             contenedor.innerHTML = '';
             const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
 
-            // LUPA MEJORADA: AHORA BUSCA TAMBIÉN EN SUBCATEGORÍAS
             if (busqueda !== "") {
                 const filtrados = BD_PRODUCTOS.filter(p => 
                     p.nombre.toLowerCase().includes(busqueda) || 
@@ -476,7 +485,6 @@
                 const listaPromos = BD_PRODUCTOS.filter(p => esPromo(p));
                 const listaDestacados = BD_PRODUCTOS.filter(p => esDestacado(p));
                 
-                // Si tocó el botón exclusivo de PROMOS
                 if(categoriaSeleccionada === "PROMOS") {
                     contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
                     listaPromos.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
@@ -484,7 +492,6 @@
                     return; 
                 }
 
-                // Si tocó el botón exclusivo de DESTACADOS
                 if(categoriaSeleccionada === "DESTACADOS") {
                     contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
                     listaDestacados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
@@ -492,7 +499,6 @@
                     return; 
                 }
 
-                // SI ESTÁ EN "TODOS", MOSTRAMOS LOS CARRUSELES
                 if(listaPromos.length > 0 && categoriaSeleccionada === "TODOS") {
                     let htmlCarruselPromos = `
                     <div class="flex flex-col w-full">
