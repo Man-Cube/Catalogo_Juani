@@ -89,9 +89,10 @@
                     <button id="btn-envio" onclick="setEntrega('envio')" class="bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors">Envío a domicilio</button>
                 </div>
                 <div id="div-direccion" class="hidden animate-slide-up flex flex-col gap-2">
-    <input type="text" id="input-nombre" placeholder="👤 Nombre y Apellido (Quien recibe)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
-    <input type="text" id="input-direccion" placeholder="📍 Dirección (Ej: Calle 14 Nro 1234, Barrio...)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
-</div>
+                    <input type="text" id="input-nombre" placeholder="👤 Nombre y Apellido (Quien recibe)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
+                    <input type="text" id="input-direccion" placeholder="📍 Dirección (Ej: Calle 14 Nro 1234, Barrio...)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
+                </div>
+            </div>
 
             <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 shadow-sm">
                 <h3 class="font-bold text-gray-700 text-sm mb-3 uppercase flex items-center gap-2"><span class="text-lg">💳</span> Medio de Pago</h3>
@@ -184,6 +185,7 @@
         let subtotalCarritoPuro = 0;
         let modoEntrega = 'retiro';
 
+        // LocalStorage Memoria
         function guardarCarritoEnStorage() {
             const changoGuardado = BD_PRODUCTOS.filter(p => p.cantidad > 0).map(p => ({ codigo: p.codigo, cantidad: p.cantidad }));
             localStorage.setItem('changuito_juani', JSON.stringify(changoGuardado));
@@ -208,12 +210,12 @@
             }
         }
 
+        // Detectores para Fiambres y Ofertas
         function esPesable(prod) {
             if (!prod) return false;
             const cat = (prod.categoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const sub = (prod.subcategoria || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const nom = (prod.nombre || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            
             const keywords = ['fiambre', 'fresco', 'carniceria', 'verduleria', 'pesable', 'queso', 'jamon', 'salame', 'mortadela', 'paleta', 'salchichon', 'panceta', 'bondiola'];
             return keywords.some(kw => cat.includes(kw) || sub.includes(kw) || nom.includes(kw));
         }
@@ -233,15 +235,12 @@
             setTimeout(() => { toast.classList.add('opacity-0'); }, 3500);
         }
 
-        // ====== FIX MAESTRO: MEMORIA DE SUBCATEGORÍA ======
+        // Navegación con botón atrás del celular
         window.addEventListener('popstate', function(event) {
-            // Si el modal del producto está abierto y la doña apreta volver (o la X),
-            // solo cerramos el modal y cortamos acá para que no se resetee el catálogo.
             if (!document.getElementById('modal-producto').classList.contains('hidden')) {
                 cerrarModalProductoVisualmente();
                 return; 
             }
-
             cerrarModalVaciar();
             cerrarAvisoPrecio();
             
@@ -266,11 +265,8 @@
                 const textoCSV = await respuesta.text();
                 
                 Papa.parse(textoCSV, {
-                    header: true, 
-                    skipEmptyLines: true,
-                    transformHeader: function(header) { 
-                        return header.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
-                    },
+                    header: true, skipEmptyLines: true,
+                    transformHeader: function(header) { return header.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); },
                     complete: function(results) {
                         const productosDisponibles = results.data.filter(item => {
                             const stockRaw = item.stock ? String(item.stock).trim() : '';
@@ -280,21 +276,15 @@
                         BD_PRODUCTOS = productosDisponibles.map((item, index) => {
                             let strStock = item.stock ? String(item.stock).trim() : '';
                             strStock = strStock.replace(/\s/g, '');
-                            if (strStock.includes(',') && strStock.includes('.')) {
-                                strStock = strStock.replace(/\./g, '').replace(/,/g, '.');
-                            } else if (strStock.includes(',')) {
-                                strStock = strStock.replace(/,/g, '.');
-                            }
+                            if (strStock.includes(',') && strStock.includes('.')) strStock = strStock.replace(/\./g, '').replace(/,/g, '.');
+                            else if (strStock.includes(',')) strStock = strStock.replace(/,/g, '.');
                             let stockReal = parseFloat(strStock);
                             if(isNaN(stockReal)) stockReal = 9999;
 
                             let strPrecio = item.precio ? String(item.precio).trim() : '0';
                             strPrecio = strPrecio.replace(/\$|\s/g, ''); 
-                            if (strPrecio.includes(',') && strPrecio.includes('.')) {
-                                strPrecio = strPrecio.replace(/\./g, '').replace(/,/g, '.');
-                            } else if (strPrecio.includes(',')) {
-                                strPrecio = strPrecio.replace(/,/g, '.');
-                            }
+                            if (strPrecio.includes(',') && strPrecio.includes('.')) strPrecio = strPrecio.replace(/\./g, '').replace(/,/g, '.');
+                            else if (strPrecio.includes(',')) strPrecio = strPrecio.replace(/,/g, '.');
                             let precioLimpio = parseFloat(strPrecio);
                             if (isNaN(precioLimpio)) precioLimpio = 0;
 
@@ -304,11 +294,8 @@
 
                             let strPromo = item.promo_precio ? String(item.promo_precio).trim() : '0';
                             strPromo = strPromo.replace(/\$|\s/g, '');
-                            if (strPromo.includes(',') && strPromo.includes('.')) {
-                                strPromo = strPromo.replace(/\./g, '').replace(/,/g, '.');
-                            } else if (strPromo.includes(',')) {
-                                strPromo = strPromo.replace(/,/g, '.');
-                            }
+                            if (strPromo.includes(',') && strPromo.includes('.')) strPromo = strPromo.replace(/\./g, '').replace(/,/g, '.');
+                            else if (strPromo.includes(',')) strPromo = strPromo.replace(/,/g, '.');
                             let promoLimpia = parseFloat(strPromo);
                             if (isNaN(promoLimpia)) promoLimpia = 0;
 
@@ -329,7 +316,6 @@
                         });
                         
                         cargarCarritoDeStorage();
-
                         CATEGORIAS_DESTACADAS = [...new Set(BD_PRODUCTOS.map(p => p.categoria).filter(c => c && c.trim() !== '' && c.toLowerCase() !== 'otros' && !c.toLowerCase().includes('destacad') && !c.toLowerCase().includes('promo')))];
 
                         document.getElementById('loading-catalogo').classList.add('hidden');
@@ -414,9 +400,7 @@
 
             let textoBadge = "OFERTA";
             if (tienePromoReal) {
-                let cantTxt = esPesable(prod) 
-                    ? (prod.promo_cant < 1 ? (prod.promo_cant * 1000) + 'g' : prod.promo_cant + 'kg') 
-                    : prod.promo_cant;
+                let cantTxt = esPesable(prod) ? (prod.promo_cant < 1 ? (prod.promo_cant * 1000) + 'g' : prod.promo_cant + 'kg') : prod.promo_cant;
                 textoBadge = `${cantTxt} x $${prod.promo_precio.toLocaleString('es-AR')}`;
             }
 
@@ -551,6 +535,7 @@
             categoriaSeleccionada = cat;
             subCategoriaSeleccionada = "TODOS";
             
+            // Lupa vacía al cambiar pasillo
             document.getElementById('buscador-cliente').value = "";
 
             renderizarBarraCategorias();
@@ -995,7 +980,7 @@
                 }
             });
 
-           mensaje += `🚚 *ENTREGA:* ${modoEntrega === 'retiro' ? 'Retiro en el local' : 'Envío a domicilio'}\n`;
+            mensaje += `🚚 *ENTREGA:* ${modoEntrega === 'retiro' ? 'Retiro en el local' : 'Envío a domicilio'}\n`;
             if(modoEntrega === 'envio') {
                 const nombre = document.getElementById('input-nombre').value.trim() || 'No especificó nombre';
                 const direccion = document.getElementById('input-direccion').value.trim() || 'No especificó dirección';
@@ -1013,7 +998,7 @@
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
             
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
+            const NUMERO_TELEFONO_JUANI = "5491100000000"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
