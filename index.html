@@ -244,7 +244,6 @@
             return dest === 'si' || dest === 'sí' || dest === 'x' || cat.includes('destacad') || subcat.includes('destacad') || desc.includes('destacad');
         }
 
-        // ====== FUNCIÓN PARA CALCULAR LOS COMBOS DE PAREJA ======
         function calcularDescuentoCombos() {
             let carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             let combosMap = {};
@@ -258,12 +257,21 @@
             
             let descuentoTotal = 0;
             for (let cid in combosMap) {
-                if (combosMap[cid].length >= 2) {
-                    let cants = combosMap[cid].map(p => p.cantidad);
+                let miembrosTotalesEnBD = BD_PRODUCTOS.filter(p => p.combo_id === cid);
+                let miembrosEnCarrito = combosMap[cid];
+                
+                if (miembrosEnCarrito.length === miembrosTotalesEnBD.length) {
+                    let cants = miembrosEnCarrito.map(p => p.cantidad);
                     let combosFormados = Math.min(...cants);
+                    
                     if (combosFormados > 0) {
-                        let descPorCombo = combosMap[cid].reduce((sum, p) => sum + p.combo_descuento, 0);
-                        descuentoTotal += (combosFormados * descPorCombo);
+                        let precioNormalTotalSuma = miembrosTotalesEnBD.reduce((sum, p) => sum + p.precio, 0);
+                        let precioComboFinalTarget = miembrosTotalesEnBD[0].combo_precio_final;
+                        let descPorCombo = precioNormalTotalSuma - precioComboFinalTarget;
+                        
+                        if (descPorCombo > 0) {
+                            descuentoTotal += (combosFormados * descPorCombo);
+                        }
                     }
                 }
             }
@@ -336,9 +344,8 @@
                             else if (strPromo.includes(',')) strPromo = strPromo.replace(/,/g, '.');
                             let promoLimpia = parseFloat(strPromo.replace(/\$|\s/g, '')) || 0;
 
-                            // Lectura de las nuevas columnas de combos
-                            let strComboDesc = item.combo_descuento ? String(item.combo_descuento).trim() : '0';
-                            let comboDescLimpio = parseFloat(strComboDesc.replace(/\$|\s/g, '').replace(/,/g, '.')) || 0;
+                            let strComboPrecio = item.combo_precio_final ? String(item.combo_precio_final).trim() : '0';
+                            let comboPrecioLimpio = parseFloat(strComboPrecio.replace(/\$|\s/g, '').replace(/,/g, '.')) || 0;
 
                             return {
                                 id: index,
@@ -353,13 +360,12 @@
                                 promo_precio: promoLimpia,
                                 destacado_col: item.destacado ? String(item.destacado).trim() : '',
                                 combo_id: item.combo_id ? String(item.combo_id).trim() : '',
-                                combo_descuento: comboDescLimpio,
+                                combo_precio_final: comboPrecioLimpio,
                                 stockDisponible: stockReal,
                                 cantidad: 0
                             };
                         });
                         
-                        // Ordenador V8: Destacados primero, Promos segundo, Alfabético abajo
                         BD_PRODUCTOS.sort((a, b) => {
                             let puntosA = (esDestacado(a) ? 3 : 0) + (esPromo(a) ? 1 : 0);
                             let puntosB = (esDestacado(b) ? 3 : 0) + (esPromo(b) ? 1 : 0);
@@ -384,13 +390,13 @@
             const barra = document.getElementById('barra-categorias');
             const hayPromos = BD_PRODUCTOS.some(p => esPromo(p));
             const hayDestacados = BD_PRODUCTOS.some(p => esDestacado(p));
-            let categoriasUnicas = ["TODOS"];
-            if(hayPromos) categoriasUnicas.push("PROMOS");
-            if(hayDestacados) categoriasUnicas.push("DESTACADOS");
-            categoriasUnicas = categoriasUnicas.concat(CATEGORIAS_DESTACADAS);
+            let categoriesList = ["TODOS"];
+            if(hayPromos) categoriesList.push("PROMOS");
+            if(hayDestacados) categoriesList.push("DESTACADOS");
+            categoriesList = categoriesList.concat(CATEGORIAS_DESTACADAS);
             barra.innerHTML = '';
             
-            categoriasUnicas.forEach(cat => {
+            categoriesList.forEach(cat => {
                 const btn = document.createElement('button');
                 btn.id = `cat-${cat}`;
                 const catLimpia = cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -531,7 +537,6 @@
                     return; 
                 }
 
-                // ====== REORDENAMIENTO: DESTACADOS PRIMERO EN LA PANTALLA PRINCIPAL ======
                 if(listaDestacados.length > 0 && categoriaSeleccionada === "TODOS") {
                     let htmlCarruselDestacados = `
                     <div class="flex flex-col w-full">
@@ -669,7 +674,11 @@
         function ajustarTempCant(cambio) {
             const paso = obtenerPaso(productoAbierto);
             let nueva = cantTemporalModal + (cambio * paso);
-            nueva = parseFloat(nueva.toFixed(2)); 
+            
+            // EL FIX: Redondear a entero si no es pesable
+            if (!esPesable(productoAbierto)) nueva = Math.round(nueva);
+            else nueva = parseFloat(nueva.toFixed(2));
+
             if (nueva > productoAbierto.stockDisponible) {
                 nueva = productoAbierto.stockDisponible;
                 mostrarToastStock(productoAbierto.stockDisponible + (esPesable(productoAbierto) ? " kg" : " u."));
@@ -687,7 +696,11 @@
         function ingresoManualModal(valorEscrito) {
             let nueva = parseFloat(valorEscrito.replace(/,/g, '.'));
             if(isNaN(nueva) || nueva < 0) nueva = 0;
-            nueva = parseFloat(nueva.toFixed(2));
+            
+            // EL FIX: Redondear a entero si no es pesable
+            if (!esPesable(productoAbierto)) nueva = Math.round(nueva);
+            else nueva = parseFloat(nueva.toFixed(2));
+
             if(nueva > 999) nueva = 999;
             if (nueva > productoAbierto.stockDisponible) {
                 nueva = productoAbierto.stockDisponible;
@@ -826,7 +839,6 @@
             const selectPago = document.getElementById('select-pago');
             const metodoPago = selectPago.value;
             
-            // Calculamos el subtotal base menos los descuentos de combos aplicados
             let descuentoCombos = calcularDescuentoCombos();
             let total = subtotalCarritoPuro - descuentoCombos;
             if(total < 0) total = 0;
@@ -905,7 +917,6 @@
                 </div>`;
             });
 
-            // Si hay combos formados, agregamos un cartelito visual avisando del descuento
             let descCombos = calcularDescuentoCombos();
             if (descCombos > 0) {
                 divCarrito.innerHTML += `
@@ -924,7 +935,11 @@
                 const prod = BD_PRODUCTOS[index];
                 const paso = obtenerPaso(prod);
                 let nuevaCant = prod.cantidad + (cambio * paso);
-                nuevaCant = parseFloat(nuevaCant.toFixed(2));
+                
+                // EL FIX: Redondear a entero si no es pesable en el carrito
+                if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
+                else nuevaCant = parseFloat(nuevaCant.toFixed(2));
+
                 if (nuevaCant > prod.stockDisponible) {
                     nuevaCant = prod.stockDisponible;
                     mostrarToastStock(prod.stockDisponible + (esPesable(prod) ? " kg" : " u."));
@@ -945,7 +960,11 @@
                 const prod = BD_PRODUCTOS[index];
                 let nuevaCant = parseFloat(valorEscrito.replace(/,/g, '.'));
                 if(isNaN(nuevaCant) || nuevaCant < 0) nuevaCant = 0;
-                nuevaCant = parseFloat(nuevaCant.toFixed(2));
+                
+                // EL FIX: Redondear a entero si no es pesable en el carrito
+                if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
+                else nuevaCant = parseFloat(nuevaCant.toFixed(2));
+
                 if (nuevaCant > prod.stockDisponible) {
                     nuevaCant = prod.stockDisponible;
                     mostrarToastStock(prod.stockDisponible);
