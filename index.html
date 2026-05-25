@@ -377,7 +377,7 @@
             } catch (error) { document.getElementById('loading-catalogo').innerText = "❌ Error al cargar la base de datos."; }
         }
 
-        function renderizarBarraCategorias() {
+                function renderizarBarraCategorias() {
             const barra = document.getElementById('barra-categorias');
             const hayPromos = BD_PRODUCTOS.some(p => esPromo(p));
             const hayDestacados = BD_PRODUCTOS.some(p => esDestacado(p));
@@ -393,17 +393,25 @@
                 const btn = document.createElement('button');
                 btn.id = `cat-${cat}`;
                 
+                // ====== EL DETECTOR ANTI-TILDES ======
+                // Convertimos a minúsculas y planchamos los acentos para que coincida sí o sí
+                const catLimpia = cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                
+                // Foto de repuesto por si usás una categoría nueva en el Excel
                 let imgUrl = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&q=80'; 
                 
-                if (cat === 'TODOS') imgUrl = 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&q=80';
-                if (cat === 'PROMOS') imgUrl = 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=150&q=80';
-                if (cat === 'DESTACADOS') imgUrl = 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=150&q=80';
-                if (cat.toLowerCase().includes('almacen')) imgUrl = 'https://images.unsplash.com/photo-1584385002340-d724ac62728b?w=150&q=80';
-                if (cat.toLowerCase().includes('bebida')) imgUrl = 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=150&q=80';
-                if (cat.toLowerCase().includes('fiambre')) imgUrl = 'https://images.unsplash.com/photo-1628169112995-177218ac8632?w=150&q=80';
-                if (cat.toLowerCase().includes('fresco')) imgUrl = 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?w=150&q=80';
-                if (cat.toLowerCase().includes('limpieza')) imgUrl = 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=150&q=80';
-
+                // ====== NUEVOS LINKS REALISTAS ======
+                if (cat === 'TODOS') imgUrl = 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&q=80'; // Changuito/Góndola
+                if (cat === 'PROMOS') imgUrl = 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=150&q=80'; // Cartel de Sale/Descuento
+                if (cat === 'DESTACADOS') imgUrl = 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=150&q=80'; // Productos premium
+                
+                // Filtros inteligentes leyendo tu Excel sin importar si pusiste acento o no
+                if (catLimpia.includes('almacen')) imgUrl = 'https://images.unsplash.com/photo-1553531384-cc64ac80f931?w=150&q=80'; // Estantes con paquetes de fideos/arroz
+                if (catLimpia.includes('bebida') || catLimpia.includes('gaseosa')) imgUrl = 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=150&q=80'; // Heladera de gaseosas/cervezas
+                if (catLimpia.includes('fiambre') || catLimpia.includes('queso') || catLimpia.includes('fiambreria')) imgUrl = 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=150&q=80'; // Quesos finos y embutidos reales
+                if (catLimpia.includes('fresco') || catLimpia.includes('verduleria') || catLimpia.includes('fruta') || catLimpia.includes('carne')) imgUrl = 'https://images.unsplash.com/photo-1566385101042-1a010c159fcf?w=150&q=80'; // Cajones de verdulería realistas
+                if (catLimpia.includes('limpieza')) imgUrl = 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=150&q=80'; // Jabón líquido y desinfectantes
+                
                 const isSelected = categoriaSeleccionada.toLowerCase() === cat.toLowerCase();
                 
                 btn.className = `flex flex-col items-center gap-1.5 shrink-0 transition-all ${isSelected ? 'opacity-100 scale-110 drop-shadow-md' : 'opacity-70'}`;
