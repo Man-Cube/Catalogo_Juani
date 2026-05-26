@@ -176,8 +176,8 @@
     <div id="modal-aviso-precio" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4 transition-opacity">
         <div class="bg-white rounded-3xl w-full max-w-sm mx-auto flex flex-col items-center p-6 text-center animate-pop shadow-2xl">
             <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center text-3xl mb-4 border-4 border-white shadow-sm">⚠️</div>
-            <h2 class="text-xl font-black text-gray-800 mb-2 leading-tight">Precios Actualizados</h2>
-            <p class="text-sm text-gray-500 mb-6 leading-relaxed">Doña, algunos productos cambiaron de precio en el local mientras armaba el changuito. Ya le corregimos los valores en su carrito para que los revise.</p>
+            <h2 id="modal-aviso-titulo" class="text-xl font-black text-gray-800 mb-2 leading-tight">Actualización</h2>
+            <p id="modal-aviso-texto" class="text-sm text-gray-500 mb-6 leading-relaxed">Hubo cambios en los productos mientras armaba su carrito. Ya le acomodamos los valores para que los revise.</p>
             <button onclick="cerrarAvisoPrecio()" class="w-full bg-juani-blue text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-transform uppercase tracking-wide text-sm">Entendido (Revisar Changuito)</button>
         </div>
     </div>
@@ -285,16 +285,10 @@
             if(!val) return 0;
             let str = String(val).trim().replace(/\$|\s/g, '');
             if (str === '') return 0;
-            // Si tiene coma, es formato seguro argento (ej: 15.000,50 o 15000,50)
             if (str.includes(',')) {
                 str = str.replace(/\./g, '').replace(',', '.');
             } else {
-                // Si solo tiene punto, hay que ver si es separador de miles o decimal gringo
-                if (/\.\d{1,2}$/.test(str)) {
-                    // Si termina en punto seguido de 1 o 2 números, es un decimal gringo (ej: 15000.00). 
-                    // Se deja el punto intacto.
-                } else {
-                    // Si no, es un separador de miles argento (ej: 15.000). Borramos el punto.
+                if (!/\.\d{1,2}$/.test(str)) {
                     str = str.replace(/\./g, '');
                 }
             }
@@ -414,7 +408,6 @@
 
                         BD_PRODUCTOS = productosDisponibles.map((item, index) => {
                             
-                            // APLICAMOS EL TRADUCTOR BIÓNICO A TODOS LOS NÚMEROS
                             let stockReal = 9999;
                             if (item.stock && String(item.stock).trim() !== '') {
                                 stockReal = limpiarNumeroArgento(item.stock);
@@ -1079,11 +1072,13 @@
         function cerrarModalHorario() { document.getElementById('modal-fuera-horario').classList.add('hidden'); }
         function forzarEnvioPedido() { cerrarModalHorario(); procesarYEnviarPedido(); }
 
-async function procesarYEnviarPedido() {
+        // =========================================================
+        // EL SUPER GUARDIÁN: VERIFICA PRECIO Y STOCK
+        // =========================================================
+        async function procesarYEnviarPedido() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
 
-            // Si ya verificamos los precios, saltamos directo al ticket
             if (preciosVerificados) {
                 abrirPantallaTicketOpcion2(carrito);
                 return;
@@ -1091,14 +1086,16 @@ async function procesarYEnviarPedido() {
 
             const btn = document.getElementById('btn-confirmar-pedido');
             const textoOriginal = btn.innerHTML;
-            btn.innerHTML = `<span class="animate-spin text-xl inline-block mr-2">⏳</span> Verificando precios...`;
+            btn.innerHTML = `<span class="animate-spin text-xl inline-block mr-2">⏳</span> Verificando carrito...`;
             btn.disabled = true;
 
             try {
                 const urlFresca = URL_CSV_PLANILLA + "&t=" + new Date().getTime();
                 const respuesta = await fetch(urlFresca);
                 const textoCSV = await respuesta.text();
-                let huboCambios = false;
+                
+                let huboCambiosPrecio = false;
+                let huboCambiosStock = false;
 
                 Papa.parse(textoCSV, {
                     header: true, skipEmptyLines: true,
@@ -1108,12 +1105,29 @@ async function procesarYEnviarPedido() {
                         
                         carrito.forEach(itemChango => {
                             const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
-                            if(itemFresco && itemFresco.precio) {
-                                const precioFresco = limpiarNumeroArgento(itemFresco.precio);
-                                // Comparamos el precio de la base con el que teníamos en memoria
-                                if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
-                                    itemChango.precio = precioFresco;
-                                    huboCambios = true;
+                            if(itemFresco) {
+                                // 1. Verificar Precio
+                                if(itemFresco.precio) {
+                                    const precioFresco = limpiarNumeroArgento(itemFresco.precio);
+                                    if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
+                                        itemChango.precio = precioFresco;
+                                        huboCambiosPrecio = true;
+                                    }
+                                }
+                                
+                                // 2. Verificar Stock
+                                let stockFresco = 9999;
+                                if(itemFresco.stock && String(itemFresco.stock).trim() !== '') {
+                                    stockFresco = limpiarNumeroArgento(itemFresco.stock);
+                                }
+                                
+                                // Actualizamos la memoria del producto por si la doña quiere sumar más después
+                                itemChango.stockDisponible = stockFresco;
+
+                                // Si me pide más de lo que tengo, lo bajo de un hondazo
+                                if(itemChango.cantidad > stockFresco) {
+                                    itemChango.cantidad = stockFresco; // Si no hay nada, baja a 0
+                                    huboCambiosStock = true;
                                 }
                             }
                         });
@@ -1121,12 +1135,29 @@ async function procesarYEnviarPedido() {
                         btn.innerHTML = textoOriginal;
                         btn.disabled = false;
                         
-                        if(huboCambios) {
-                            // MARCAMOS COMO VERIFICADO PARA QUE NO VUELVA A PASAR
+                        let huboCambiosTotales = huboCambiosPrecio || huboCambiosStock;
+
+                        if(huboCambiosTotales) {
                             preciosVerificados = true; 
                             guardarCarritoEnStorage();
                             renderizarListaCheckout(); 
                             actualizarIconoCarritoFlotante(); 
+                            
+                            // Adaptar el mensaje del cartel para que sea clarito
+                            const tituloModal = document.getElementById('modal-aviso-titulo');
+                            const textoModal = document.getElementById('modal-aviso-texto');
+                            
+                            if(huboCambiosPrecio && huboCambiosStock) {
+                                tituloModal.innerText = "Precios y Stock Actualizados";
+                                textoModal.innerText = "Doña, algunos productos cambiaron de precio y otros se quedaron sin stock suficiente mientras armaba el pedido. Le acomodamos el changuito a lo que hay disponible para que lo revise.";
+                            } else if (huboCambiosStock) {
+                                tituloModal.innerText = "¡Falta de Stock!";
+                                textoModal.innerText = "Doña, alguien se nos adelantó y nos quedamos sin stock suficiente de algo que pidió. Le ajustamos las cantidades a lo que nos queda en góndola.";
+                            } else {
+                                tituloModal.innerText = "Precios Actualizados";
+                                textoModal.innerText = "Doña, algunos productos cambiaron de precio. Ya le corregimos los valores en su carrito para que los revise.";
+                            }
+
                             document.getElementById('modal-aviso-precio').classList.remove('hidden');
                         } else {
                             abrirPantallaTicketOpcion2(carrito);
@@ -1145,13 +1176,17 @@ async function procesarYEnviarPedido() {
         }
 
         function abrirPantallaTicketOpcion2(carrito) {
+            // Filtramos de nuevo por las dudas que algún producto haya quedado en cantidad 0 por falta de stock
+            const carritoReal = BD_PRODUCTOS.filter(p => p.cantidad > 0);
+            if(carritoReal.length === 0) return;
+
             const ahora = new Date();
             document.getElementById('ticket-fecha-hora').innerText = `Fecha: ${ahora.toLocaleDateString()} ${ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
             
             const listDiv = document.getElementById('ticket-items-list');
             listDiv.innerHTML = '';
             
-            carrito.forEach(item => {
+            carritoReal.forEach(item => {
                 let sub = 0;
                 const UMED = esPesable(item) ? 'kg' : 'u.';
                 if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) {
