@@ -29,6 +29,7 @@
         .flying-item { position: fixed; z-index: 9999; transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); pointer-events: none; border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2); opacity: 1; }
         input[type="text"] { -moz-appearance: textfield; }
         
+        /* Estilo simulador de papel térmico de tickeadora */
         .ticket-papel { background: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-family: 'Courier New', Courier, monospace; position: relative; border-bottom: 8px dashed #cccccc; }
     </style>
 </head>
@@ -277,6 +278,30 @@
         let subtotalCarritoPuro = 0;
         let modoEntrega = 'retiro';
 
+        // =========================================================
+        // TRADUCTOR BIONICO: CONVIERTE CUALQUIER FORMATO A NUMERO REAL
+        // =========================================================
+        function limpiarNumeroArgento(val) {
+            if(!val) return 0;
+            let str = String(val).trim().replace(/\$|\s/g, '');
+            if (str === '') return 0;
+            // Si tiene coma, es formato seguro argento (ej: 15.000,50 o 15000,50)
+            if (str.includes(',')) {
+                str = str.replace(/\./g, '').replace(',', '.');
+            } else {
+                // Si solo tiene punto, hay que ver si es separador de miles o decimal gringo
+                if (/\.\d{1,2}$/.test(str)) {
+                    // Si termina en punto seguido de 1 o 2 números, es un decimal gringo (ej: 15000.00). 
+                    // Se deja el punto intacto.
+                } else {
+                    // Si no, es un separador de miles argento (ej: 15.000). Borramos el punto.
+                    str = str.replace(/\./g, '');
+                }
+            }
+            let num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
+        }
+
         function guardarCarritoEnStorage() {
             const changoGuardado = BD_PRODUCTOS.filter(p => p.cantidad > 0).map(p => ({ codigo: p.codigo, cantidad: p.cantidad }));
             localStorage.setItem('changuito_juani', JSON.stringify(changoGuardado));
@@ -389,35 +414,16 @@
 
                         BD_PRODUCTOS = productosDisponibles.map((item, index) => {
                             
-                            // ==========================================
-                            // FIX ARGENTINO: PARSEO DE NÚMEROS A PRUEBA DE BALAS
-                            // ==========================================
+                            // APLICAMOS EL TRADUCTOR BIÓNICO A TODOS LOS NÚMEROS
+                            let stockReal = 9999;
+                            if (item.stock && String(item.stock).trim() !== '') {
+                                stockReal = limpiarNumeroArgento(item.stock);
+                            }
                             
-                            // 1. Stock
-                            let strStock = item.stock ? String(item.stock).trim() : '';
-                            strStock = strStock.replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '.');
-                            let stockReal = parseFloat(strStock);
-                            if(isNaN(stockReal)) stockReal = 9999;
-
-                            // 2. Precio Regular
-                            let strPrecio = item.precio ? String(item.precio).trim() : '0';
-                            strPrecio = strPrecio.replace(/\$|\s/g, '').replace(/\./g, '').replace(/,/g, '.');
-                            let precioLimpio = parseFloat(strPrecio);
-                            if (isNaN(precioLimpio)) precioLimpio = 0;
-
-                            // 3. Cantidad Promoción
-                            let strPromoCant = item.promo_cant ? String(item.promo_cant).trim() : '0';
-                            let promoCantLimpia = parseFloat(strPromoCant.replace(/,/g, '.')) || 0;
-
-                            // 4. Precio Promoción
-                            let strPromo = item.promo_precio ? String(item.promo_precio).trim() : '0';
-                            strPromo = strPromo.replace(/\$|\s/g, '').replace(/\./g, '').replace(/,/g, '.');
-                            let promoLimpia = parseFloat(strPromo) || 0;
-
-                            // 5. Precio Combo Final
-                            let strComboPrecio = item.combo_precio_final ? String(item.combo_precio_final).trim() : '0';
-                            strComboPrecio = strComboPrecio.replace(/\$|\s/g, '').replace(/\./g, '').replace(/,/g, '.');
-                            let comboPrecioLimpio = parseFloat(strComboPrecio) || 0;
+                            let precioLimpio = limpiarNumeroArgento(item.precio);
+                            let promoCantLimpia = limpiarNumeroArgento(item.promo_cant);
+                            let promoLimpia = limpiarNumeroArgento(item.promo_precio);
+                            let comboPrecioLimpio = limpiarNumeroArgento(item.combo_precio_final);
 
                             return {
                                 id: index,
@@ -1073,9 +1079,6 @@
         function cerrarModalHorario() { document.getElementById('modal-fuera-horario').classList.add('hidden'); }
         function forzarEnvioPedido() { cerrarModalHorario(); procesarYEnviarPedido(); }
 
-        // ==========================================
-        // LA VERIFICACIÓN BLINDADA DE PRECIOS
-        // ==========================================
         async function procesarYEnviarPedido() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
@@ -1100,9 +1103,8 @@
                         carrito.forEach(itemChango => {
                             const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
                             if(itemFresco && itemFresco.precio) {
-                                // Aplicamos el mismo blindaje argentino en la verificación
-                                let strPrecio = String(itemFresco.precio).replace(/\$|\s/g, '').replace(/\./g, '').replace(/,/g, '.');
-                                const precioFresco = parseFloat(strPrecio);
+                                // APLICAMOS EL TRADUCTOR BIÓNICO TAMBIÉN ACÁ
+                                const precioFresco = limpiarNumeroArgento(itemFresco.precio);
                                 
                                 if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
                                     itemChango.precio = precioFresco;
@@ -1132,12 +1134,7 @@
             }
         }
 
-        // ==========================================
-        // CERRAR CARTEL AMARILLO Y QUEDARSE EN CARRITO
-        // ==========================================
         function cerrarAvisoPrecio() { 
-            // Cierra el cartel pero NO avanza al ticket. 
-            // Deja a la doña que vea los nuevos precios.
             document.getElementById('modal-aviso-precio').classList.add('hidden'); 
         }
 
