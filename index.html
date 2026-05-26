@@ -41,7 +41,7 @@
 
     <button onclick="abrirPantallaCarrito()" id="btn-carrito-flotante" class="fixed top-4 right-4 z-[60] active:scale-95 transition-transform p-2 flex items-center justify-center">
         <svg class="w-7 h-7 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4 geometryzm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
         <span id="badge-carrito" class="absolute top-0 right-0 bg-juani-red text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-md transform transition-transform hidden border-2 border-white">0</span>
     </button>
@@ -359,7 +359,7 @@
                 return; 
             }
             cerrarModalVaciar();
-            cerrarAvisoPrecio();
+            
             document.getElementById('pantalla-ticket-final').classList.add('hidden');
             const hash = window.location.hash;
             if (hash === '#carrito') {
@@ -996,6 +996,7 @@
                 const prod = BD_PRODUCTOS[index];
                 const paso = obtenerPaso(prod);
                 let nuevaCant = prod.cantidad + (cambio * paso);
+                
                 if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
                 else nuevaCant = parseFloat(nuevaCant.toFixed(2));
 
@@ -1019,6 +1020,7 @@
                 const prod = BD_PRODUCTOS[index];
                 let nuevaCant = parseFloat(valorEscrito.replace(/,/g, '.'));
                 if(isNaN(nuevaCant) || nuevaCant < 0) nuevaCant = 0;
+                
                 if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
                 else nuevaCant = parseFloat(nuevaCant.toFixed(2));
 
@@ -1069,7 +1071,7 @@
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
             if (preciosVerificados) {
-                abrirPantallaTicketOpcion2(carrito); // <-- CAMBIO: En vez de saltar abre el Remito visual
+                abrirPantallaTicketOpcion2(carrito);
                 return;
             }
             const btn = document.getElementById('btn-confirmar-pedido');
@@ -1120,7 +1122,16 @@
             }
         }
 
-        // ====== CONSTRUCTOR DINÁMICO DEL TICKET DE CAJA ======
+        // ====== LA MAGIA PARA QUE NO SE SIENTA BUGEADO ======
+        function cerrarAvisoPrecio() { 
+            document.getElementById('modal-aviso-precio').classList.add('hidden'); 
+            
+            // Apenas cierra el cartel de aviso, te abre el ticket digital 
+            // para que no sientas que el botón no hizo nada.
+            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
+            abrirPantallaTicketOpcion2(carrito);
+        }
+
         function abrirPantallaTicketOpcion2(carrito) {
             const ahora = new Date();
             document.getElementById('ticket-fecha-hora').innerText = `Fecha: ${ahora.toLocaleDateString()} ${ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
@@ -1185,7 +1196,6 @@
 
         function cerrarPantallaTicket() { document.getElementById('pantalla-ticket-final').classList.add('hidden'); }
 
-        // MÁQUINA DE RENDERING EN PDF NATIVA DE CELULARES
         function descargarTicketPDF() {
             const elemento = document.getElementById('bloque-ticket-imprimible');
             const opciones = {
@@ -1233,7 +1243,7 @@
             if(selectPago.value === 'credito') totalFinal = totalFinal * 1.10;
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n*(Ya descargué mi ticket virtual en PDF 📄)*\n\n¿Tienen stock de todo, rey?`;
-            const NUMERO_TELEFONO_JUANI = "5491100000000"; 
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
             cerrarPantallaTicket();
         }
