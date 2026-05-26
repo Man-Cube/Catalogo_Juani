@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" href="icon.png">
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     
@@ -27,6 +28,9 @@
         .animate-pop { animation: pop 0.3s ease-out; }
         .flying-item { position: fixed; z-index: 9999; transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); pointer-events: none; border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2); opacity: 1; }
         input[type="text"] { -moz-appearance: textfield; }
+        
+        /* Estilo simulador de papel térmico de tickeadora */
+        .ticket-papel { background: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-family: 'Courier New', Courier, monospace; position: relative; border-bottom: 8px dashed #cccccc; }
     </style>
 </head>
 <body class="text-gray-800 font-sans antialiased select-none pb-10">
@@ -37,7 +41,7 @@
 
     <button onclick="abrirPantallaCarrito()" id="btn-carrito-flotante" class="fixed top-4 right-4 z-[60] active:scale-95 transition-transform p-2 flex items-center justify-center">
         <svg class="w-7 h-7 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4 geometryzm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
         <span id="badge-carrito" class="absolute top-0 right-0 bg-juani-red text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-md transform transition-transform hidden border-2 border-white">0</span>
     </button>
@@ -57,7 +61,7 @@
             <div class="px-4 mt-2 mb-4">
                 <div class="bg-white rounded-full flex items-center px-4 py-2.5 shadow-inner">
                     <span class="text-gray-400 text-lg mr-2">🔍</span>
-                    <input type="text" id="buscador-cliente" oninput="filtrarCatalogo()" placeholder="¿Qué buscás hoy, doña?" class="w-full bg-transparent outline-none text-sm text-gray-700 font-medium placeholder-gray-400">
+                    <input type="text" id="buscador-cliente" oninput="filtrarCatalogo()" onkeydown="if(event.key==='Enter') this.blur();" placeholder="¿Qué buscás hoy, doña?" class="w-full bg-transparent outline-none text-sm text-gray-700 font-medium placeholder-gray-400">
                 </div>
             </div>
 
@@ -111,8 +115,8 @@
                     <button id="btn-envio" onclick="setEntrega('envio')" class="bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors">Envío a domicilio</button>
                 </div>
                 <div id="div-direccion" class="hidden animate-slide-up flex flex-col gap-2">
-                    <input type="text" id="input-nombre" placeholder="👤 Nombre y Apellido (Quien recibe)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
-                    <input type="text" id="input-direccion" placeholder="📍 Dirección (Ej: Calle 14 Nro 1234, Barrio...)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
+                    <input type="text" id="input-nombre" onkeydown="if(event.key==='Enter') this.blur();" placeholder="👤 Nombre y Apellido (Quien recibe)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
+                    <input type="text" id="input-direccion" onkeydown="if(event.key==='Enter') this.blur();" placeholder="📍 Dirección (Ej: Calle 14 Nro 1234, Barrio...)" class="w-full p-3 rounded-xl border border-blue-200 font-medium text-gray-700 outline-none focus:ring-2 focus:ring-juani-blue text-sm">
                 </div>
             </div>
 
@@ -157,7 +161,7 @@
                     <span class="text-sm font-bold text-gray-400">Cant:</span>
                     <div class="flex items-center bg-gray-50 rounded-2xl border border-gray-200 p-1">
                         <button onclick="ajustarTempCant(-1)" class="w-12 h-12 rounded-xl bg-white text-juani-blue shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">-</button>
-                        <input type="text" inputmode="decimal" id="modal-temp-cant" onchange="ingresoManualModal(this.value)" onfocus="document.getElementById('modal-producto').style.paddingBottom = '12vh';" onblur="document.getElementById('modal-producto').style.paddingBottom = '0';" class="font-black text-gray-800 text-xl w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
+                        <input type="text" inputmode="decimal" id="modal-temp-cant" onchange="ingresoManualModal(this.value)" onkeydown="if(event.key==='Enter') this.blur();" onfocus="document.getElementById('modal-producto').style.paddingBottom = '12vh';" onblur="document.getElementById('modal-producto').style.paddingBottom = '0';" class="font-black text-gray-800 text-xl w-16 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
                         <button onclick="ajustarTempCant(1)" class="w-12 h-12 rounded-xl bg-juani-blue text-white shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">+</button>
                     </div>
                 </div>
@@ -201,7 +205,60 @@
             </div>
             <div class="flex w-full gap-3">
                 <button onclick="cerrarModalHorario()" class="w-1/2 bg-gray-100 text-gray-600 font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-transform uppercase tracking-wide text-xs">Cancelar</button>
-                <button onclick="forzarEnvioPedido()" class="w-1/2 bg-juani-blue text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-transform uppercase tracking-wide text-xs">Enviar igual</button>
+                <button onclick="forzarEnvioPedido()" class="w-1/2 bg-juani-blue text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-transform uppercase tracking-wide text-xs">Avanzar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pantalla-ticket-final" class="hidden fixed inset-0 bg-gray-900 bg-opacity-80 z-[100] overflow-y-auto p-4 flex flex-col justify-start items-center">
+        <div class="w-full max-w-sm my-4 flex flex-col gap-4">
+            
+            <div id="bloque-ticket-imprimible" class="ticket-papel p-6 text-xs text-gray-800">
+                <div class="text-center font-bold mb-4 uppercase tracking-widest border-b border-gray-300 pb-2">
+                    <span class="text-lg">AUTOSERVICIO JUANI</span><br>
+                    <span class="text-[10px] font-normal">Berazategui, Buenos Aires</span><br>
+                    <span class="text-[9px] font-normal" id="ticket-fecha-hora">Fecha: 00/00/0000 00:00</span>
+                </div>
+                
+                <div class="border-b border-dashed border-gray-400 pb-2 mb-2 font-bold flex justify-between">
+                    <span>DETALLE PRODUCTO</span>
+                    <span>SUBTOTAL</span>
+                </div>
+                
+                <div id="ticket-items-list" class="flex flex-col gap-2 border-b border-dashed border-gray-400 pb-3 mb-3"></div>
+                
+                <div class="flex flex-col gap-1 border-b border-gray-300 pb-2 mb-2">
+                    <div class="flex justify-between"><span>SUBTOTAL COMPRA:</span><span id="tk-subtotal">$0,00</span></div>
+                    <div id="tk-row-combos" class="flex justify-between text-green-700 hidden"><span>DESCUENTO COMBOS:</span><span id="tk-combos">-$0,00</span></div>
+                    <div id="tk-row-recargo" class="flex justify-between text-red-600 hidden"><span>RECARGO TARJETA (10%):</span><span id="tk-recargo">+$0,00</span></div>
+                </div>
+                
+                <div class="flex justify-between text-base font-black border-b-2 border-double border-gray-800 pb-1 mb-4">
+                    <span>TOTAL A PAGAR:</span>
+                    <span id="tk-total">$0,00</span>
+                </div>
+                
+                <div class="text-[10px] space-y-1 font-mono leading-tight">
+                    <p id="tk-entrega">📍 FORMA: -</p>
+                    <p id="tk-pago">💳 PAGO: -</p>
+                    <p id="tk-cliente-info" class="hidden"></p>
+                </div>
+                
+                <div class="text-center mt-6 border-t border-gray-200 pt-4 font-bold text-[10px] tracking-wider">
+                    *** ¡GRACIAS POR TU COMPRA, DOÑA! ***
+                </div>
+            </div>
+            
+            <div class="flex flex-col gap-2">
+                <button onclick="descargarTicketPDF()" class="w-full bg-white border-2 border-juani-blue text-juani-blue font-black py-3 rounded-xl shadow-md active:scale-95 transition-transform text-xs uppercase flex items-center justify-center gap-2">
+                    📄 Descargar Ticket PDF
+                </button>
+                <button onclick="enviarWhatsAppDefinitivo()" class="w-full bg-green-600 text-white font-black py-4 rounded-xl shadow-lg active:scale-95 transition-transform text-sm uppercase tracking-wider flex items-center justify-center gap-2">
+                    💬 Enviar Pedido al Local
+                </button>
+                <button onclick="cerrarPantallaTicket()" class="w-full bg-gray-500 text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm active:scale-95 transition-transform">
+                    Volver al Carrito
+                </button>
             </div>
         </div>
     </div>
@@ -263,31 +320,24 @@
         function calcularDescuentoCombos() {
             let carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             let combosMap = {};
-            
             carrito.forEach(p => {
                 if (p.combo_id && p.combo_id !== "") {
                     if (!combosMap[p.combo_id]) combosMap[p.combo_id] = [];
                     combosMap[p.combo_id].push(p);
                 }
             });
-            
             let descuentoTotal = 0;
             for (let cid in combosMap) {
                 let miembrosTotalesEnBD = BD_PRODUCTOS.filter(p => p.combo_id === cid);
                 let miembrosEnCarrito = combosMap[cid];
-                
                 if (miembrosEnCarrito.length === miembrosTotalesEnBD.length) {
                     let cants = miembrosEnCarrito.map(p => p.cantidad);
                     let combosFormados = Math.min(...cants);
-                    
                     if (combosFormados > 0) {
                         let precioNormalTotalSuma = miembrosTotalesEnBD.reduce((sum, p) => sum + p.precio, 0);
                         let precioComboFinalTarget = miembrosTotalesEnBD[0].combo_precio_final;
                         let descPorCombo = precioNormalTotalSuma - precioComboFinalTarget;
-                        
-                        if (descPorCombo > 0) {
-                            descuentoTotal += (combosFormados * descPorCombo);
-                        }
+                        if (descPorCombo > 0) descuentoTotal += (combosFormados * descPorCombo);
                     }
                 }
             }
@@ -310,6 +360,7 @@
             }
             cerrarModalVaciar();
             cerrarAvisoPrecio();
+            document.getElementById('pantalla-ticket-final').classList.add('hidden');
             const hash = window.location.hash;
             if (hash === '#carrito') {
                 document.getElementById('pantalla-catalogo').classList.add('hidden');
@@ -328,7 +379,6 @@
             try {
                 const respuesta = await fetch(URL_CSV_PLANILLA + "&t=" + new Date().getTime());
                 const textoCSV = await respuesta.text();
-                
                 Papa.parse(textoCSV, {
                     header: true, skipEmptyLines: true,
                     transformHeader: function(header) { return header.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); },
@@ -893,7 +943,6 @@
             carrito.forEach(prod => {
                 let sub = 0;
                 let textoPromo = '';
-                
                 if (prod.promo_cant > 0 && prod.cantidad >= prod.promo_cant) {
                     let combos = Math.floor(prod.cantidad / prod.promo_cant);
                     let sueltos = parseFloat((prod.cantidad - (combos * prod.promo_cant)).toFixed(2));
@@ -902,7 +951,6 @@
                 } else {
                     sub = prod.precio * prod.cantidad;
                 }
-                
                 subtotalCarritoPuro += sub;
 
                 const elementoImagen = prod.imagen ? 
@@ -923,7 +971,7 @@
                             <span class="text-lg font-black text-juani-blue">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
                             <div class="flex items-center bg-gray-50 rounded-xl border border-gray-200 p-1 shadow-inner">
                                 <button onclick="modificarEnCheckout(${prod.id}, -1)" class="w-10 h-10 rounded-lg bg-white text-juani-blue shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">-</button>
-                                <input type="text" inputmode="decimal" value="${prod.cantidad}" onchange="ingresoManualCheckout(${prod.id}, this.value)" class="font-black text-gray-800 text-base w-14 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
+                                <input type="text" inputmode="decimal" value="${prod.cantidad}" onchange="ingresoManualCheckout(${prod.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur();" class="font-black text-gray-800 text-base w-14 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
                                 <button onclick="modificarEnCheckout(${prod.id}, 1)" class="w-10 h-10 rounded-lg bg-juani-blue text-white shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">+</button>
                             </div>
                         </div>
@@ -939,7 +987,6 @@
                     <span>-$${descCombos.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
                 </div>`;
             }
-
             actualizarTotalFinal(); 
         }
 
@@ -949,7 +996,6 @@
                 const prod = BD_PRODUCTOS[index];
                 const paso = obtenerPaso(prod);
                 let nuevaCant = prod.cantidad + (cambio * paso);
-                
                 if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
                 else nuevaCant = parseFloat(nuevaCant.toFixed(2));
 
@@ -973,7 +1019,6 @@
                 const prod = BD_PRODUCTOS[index];
                 let nuevaCant = parseFloat(valorEscrito.replace(/,/g, '.'));
                 if(isNaN(nuevaCant) || nuevaCant < 0) nuevaCant = 0;
-                
                 if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
                 else nuevaCant = parseFloat(nuevaCant.toFixed(2));
 
@@ -1000,45 +1045,31 @@
             }
         }
 
-        // ====== RELOJ DEL LOCAL ======
         function estaAbierto() {
             const ahora = new Date();
             const hora = ahora.getHours();
             const minutos = ahora.getMinutes();
             const tiempoMilitar = hora + (minutos / 60);
-
             const abiertoMañana = tiempoMilitar >= 9 && tiempoMilitar < 13;
             const abiertoTarde = tiempoMilitar >= 17 && tiempoMilitar < 20.5;
-
             return abiertoMañana || abiertoTarde;
         }
 
         function verificarHorarioYDisparar() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
-
-            if (estaAbierto()) {
-                procesarYEnviarPedido();
-            } else {
-                document.getElementById('modal-fuera-horario').classList.remove('hidden');
-            }
+            if (estaAbierto()) procesarYEnviarPedido();
+            else document.getElementById('modal-fuera-horario').classList.remove('hidden');
         }
 
-        function cerrarModalHorario() {
-            document.getElementById('modal-fuera-horario').classList.add('hidden');
-        }
-
-        function forzarEnvioPedido() {
-            cerrarModalHorario();
-            procesarYEnviarPedido();
-        }
+        function cerrarModalHorario() { document.getElementById('modal-fuera-horario').classList.add('hidden'); }
+        function forzarEnvioPedido() { cerrarModalHorario(); procesarYEnviarPedido(); }
 
         async function procesarYEnviarPedido() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
             if (preciosVerificados) {
-                enviarWhatsAppFinal(carrito);
-                preciosVerificados = false; 
+                abrirPantallaTicketOpcion2(carrito); // <-- CAMBIO: En vez de saltar abre el Remito visual
                 return;
             }
             const btn = document.getElementById('btn-confirmar-pedido');
@@ -1078,32 +1109,107 @@
                             actualizarIconoCarritoFlotante(); 
                             document.getElementById('modal-aviso-precio').classList.remove('hidden');
                         } else {
-                            enviarWhatsAppFinal(carrito);
+                            abrirPantallaTicketOpcion2(carrito);
                         }
                     }
                 });
             } catch (error) {
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
-                enviarWhatsAppFinal(carrito);
+                abrirPantallaTicketOpcion2(carrito);
             }
         }
 
-        function cerrarAvisoPrecio() { document.getElementById('modal-aviso-precio').classList.add('hidden'); }
-
-        function enviarWhatsAppFinal(carrito) {
-            let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`;
-            mensaje += `🛒 *MI CHANGUITO:*\n`;
+        // ====== CONSTRUCTOR DINÁMICO DEL TICKET DE CAJA ======
+        function abrirPantallaTicketOpcion2(carrito) {
+            const ahora = new Date();
+            document.getElementById('ticket-fecha-hora').innerText = `Fecha: ${ahora.toLocaleDateString()} ${ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            
+            const listDiv = document.getElementById('ticket-items-list');
+            listDiv.innerHTML = '';
             
             carrito.forEach(item => {
                 let sub = 0;
-                const unidadMedida = esPesable(item) ? 'kg' : 'unid.';
-                
+                const UMED = esPesable(item) ? 'kg' : 'u.';
                 if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) {
                     let combos = Math.floor(item.cantidad / item.promo_cant);
                     let sueltos = parseFloat((item.cantidad - (combos * item.promo_cant)).toFixed(2));
                     sub = (combos * item.promo_precio) + (sueltos * item.precio);
-                    mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} ${unidadMedida} (🔥 Promo aplicada) = *$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n`;
+                } else {
+                    sub = item.precio * item.cantidad;
+                }
+                listDiv.innerHTML += `
+                <div class="flex justify-between font-mono">
+                    <span class="max-w-[70%] text-left uppercase">${item.nombre} (${item.cantidad}${UMED})</span>
+                    <span>$${sub.toLocaleString('es-AR', {minimumFractionDigits:2})}</span>
+                </div>`;
+            });
+
+            document.getElementById('tk-subtotal').innerText = `$${subtotalCarritoPuro.toLocaleString('es-AR', {minimumFractionDigits:2})}`;
+            
+            let descCombos = calcularDescuentoCombos();
+            const rowC = document.getElementById('tk-row-combos');
+            if(descCombos > 0) {
+                document.getElementById('tk-combos').innerText = `-$${descCombos.toLocaleString('es-AR', {minimumFractionDigits:2})}`;
+                rowC.classList.remove('hidden');
+            } else { rowC.classList.add('hidden'); }
+
+            let baseTotal = subtotalCarritoPuro - descCombos;
+            if(baseTotal < 0) baseTotal = 0;
+
+            const selectPago = document.getElementById('select-pago');
+            const valPago = selectPago.value;
+            const rowR = document.getElementById('tk-row-recargo');
+            
+            if(valPago === 'credito') {
+                let recargo = baseTotal * 0.10;
+                document.getElementById('tk-recargo').innerText = `+$${recargo.toLocaleString('es-AR', {minimumFractionDigits:2})}`;
+                baseTotal += recargo;
+                rowR.classList.remove('hidden');
+            } else { rowR.classList.add('hidden'); }
+
+            document.getElementById('tk-total').innerText = `$${baseTotal.toLocaleString('es-AR', {minimumFractionDigits:2})}`;
+            document.getElementById('tk-entrega').innerText = `📍 FORMA: ${modoEntrega === 'retiro' ? 'Retiro en local' : 'Envío a domicilio'}`;
+            document.getElementById('tk-pago').innerText = `💳 PAGO: ${selectPago.options[selectPago.selectedIndex].text}`;
+            
+            const infoC = document.getElementById('tk-cliente-info');
+            if(modoEntrega === 'envio') {
+                const n = document.getElementById('input-nombre').value.trim() || 'No especificó';
+                const d = document.getElementById('input-direccion').value.trim() || 'No especificó';
+                infoC.innerHTML = `👤 RECIBE: ${n}<br>🏠 DIR: ${d}`;
+                infoC.classList.remove('hidden');
+            } else { infoC.classList.add('hidden'); }
+
+            document.getElementById('pantalla-ticket-final').classList.remove('hidden');
+        }
+
+        function cerrarPantallaTicket() { document.getElementById('pantalla-ticket-final').classList.add('hidden'); }
+
+        // MÁQUINA DE RENDERING EN PDF NATIVA DE CELULARES
+        function descargarTicketPDF() {
+            const elemento = document.getElementById('bloque-ticket-imprimible');
+            const opciones = {
+                margin: 0.5,
+                filename: 'Ticket-Autoservicio-Juani.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opciones).from(elemento).save();
+        }
+
+        function enviarWhatsAppDefinitivo() {
+            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
+            let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`;
+            mensaje += `🛒 *MI CHANGUITO:*\n`;
+            carrito.forEach(item => {
+                let sub = 0;
+                const unidadMedida = esPesable(item) ? 'kg' : 'unid.';
+                if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) {
+                    let combos = Math.floor(item.cantidad / item.promo_cant);
+                    let sueltos = parseFloat((item.cantidad - (combos * item.promo_cant)).toFixed(2));
+                    sub = (combos * item.promo_precio) + (sueltos * item.precio);
+                    mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} ${unidadMedida} (🔥 Promo) = *$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n`;
                 } else {
                     sub = item.precio * item.cantidad; 
                     mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} ${unidadMedida} x $${item.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})} = *$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n`;
@@ -1111,30 +1217,25 @@
             });
 
             let descCombos = calcularDescuentoCombos();
-            if(descCombos > 0) {
-                mensaje += `🎁 *DESCUENTO COMBOS AUTOMÁTICOS:* -$${descCombos.toLocaleString('es-AR', {minimumFractionDigits: 2})}\n\n`;
-            }
-
+            if(descCombos > 0) mensaje += `🎁 *COMBOS AUTOMÁTICOS:* -$${descCombos.toLocaleString('es-AR', {minimumFractionDigits: 2})}\n\n`;
             mensaje += `🚚 *ENTREGA:* ${modoEntrega === 'retiro' ? 'Retiro en el local' : 'Envío a domicilio'}\n`;
             if(modoEntrega === 'envio') {
-                const nombre = document.getElementById('input-nombre').value.trim() || 'No especificó nombre';
-                const direccion = document.getElementById('input-direccion').value.trim() || 'No especificó dirección';
-                mensaje += `👤 *Recibe:* ${nombre}\n`;
-                mensaje += `📍 *Dirección:* ${direccion}\n`;
+                const nombre = document.getElementById('input-nombre').value.trim() || 'No especificó';
+                const direccion = document.getElementById('input-direccion').value.trim() || 'No especificó';
+                mensaje += `👤 *Recibe:* ${nombre}\n📍 *Dirección:* ${direccion}\n`;
             }
 
             const selectPago = document.getElementById('select-pago');
-            const textoPagoElegido = selectPago.options[selectPago.selectedIndex].text;
-            const valorPagoElegido = selectPago.value;
-            mensaje += `💳 *MEDIO DE PAGO:* ${textoPagoElegido}\n\n`;
+            mensaje += `💳 *MEDIO DE PAGO:* ${selectPago.options[selectPago.selectedIndex].text}\n\n`;
             
             let totalFinal = subtotalCarritoPuro - descCombos;
             if(totalFinal < 0) totalFinal = 0;
-            if(valorPagoElegido === 'credito') { totalFinal = totalFinal * 1.10; }
+            if(selectPago.value === 'credito') totalFinal = totalFinal * 1.10;
 
-            mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
+            mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n*(Ya descargué mi ticket virtual en PDF 📄)*\n\n¿Tienen stock de todo, rey?`;
             const NUMERO_TELEFONO_JUANI = "5491100000000"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
+            cerrarPantallaTicket();
         }
 
         // MOTOR BANNERS
