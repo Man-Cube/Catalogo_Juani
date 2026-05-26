@@ -29,7 +29,6 @@
         .flying-item { position: fixed; z-index: 9999; transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); pointer-events: none; border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2); opacity: 1; }
         input[type="text"] { -moz-appearance: textfield; }
         
-        /* Estilo simulador de papel térmico de tickeadora */
         .ticket-papel { background: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-family: 'Courier New', Courier, monospace; position: relative; border-bottom: 8px dashed #cccccc; }
     </style>
 </head>
@@ -177,8 +176,8 @@
         <div class="bg-white rounded-3xl w-full max-w-sm mx-auto flex flex-col items-center p-6 text-center animate-pop shadow-2xl">
             <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center text-3xl mb-4 border-4 border-white shadow-sm">⚠️</div>
             <h2 class="text-xl font-black text-gray-800 mb-2 leading-tight">Precios Actualizados</h2>
-            <p class="text-sm text-gray-500 mb-6 leading-relaxed">Doña, algunos productos cambiaron de precio en el local mientras armaba el changuito. Le actualizamos el total para que lo revise.</p>
-            <button onclick="cerrarAvisoPrecio()" class="w-full bg-juani-blue text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-transform uppercase tracking-wide text-sm">Entendido</button>
+            <p class="text-sm text-gray-500 mb-6 leading-relaxed">Doña, algunos productos cambiaron de precio en el local mientras armaba el changuito. Ya le corregimos los valores en su carrito para que los revise.</p>
+            <button onclick="cerrarAvisoPrecio()" class="w-full bg-juani-blue text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-transform uppercase tracking-wide text-sm">Entendido (Revisar Changuito)</button>
         </div>
     </div>
 
@@ -389,29 +388,36 @@
                         });
 
                         BD_PRODUCTOS = productosDisponibles.map((item, index) => {
+                            
+                            // ==========================================
+                            // FIX ARGENTINO: PARSEO DE NÚMEROS A PRUEBA DE BALAS
+                            // ==========================================
+                            
+                            // 1. Stock
                             let strStock = item.stock ? String(item.stock).trim() : '';
-                            if (strStock.includes(',') && strStock.includes('.')) strStock = strStock.replace(/\./g, '').replace(/,/g, '.');
-                            else if (strStock.includes(',')) strStock = strStock.replace(/,/g, '.');
+                            strStock = strStock.replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '.');
                             let stockReal = parseFloat(strStock);
                             if(isNaN(stockReal)) stockReal = 9999;
 
+                            // 2. Precio Regular
                             let strPrecio = item.precio ? String(item.precio).trim() : '0';
-                            strPrecio = strPrecio.replace(/\$|\s/g, ''); 
-                            if (strPrecio.includes(',') && strPrecio.includes('.')) strPrecio = strPrecio.replace(/\./g, '').replace(/,/g, '.');
-                            else if (strPrecio.includes(',')) strPrecio = strPrecio.replace(/,/g, '.');
+                            strPrecio = strPrecio.replace(/\$|\s/g, '').replace(/\./g, '').replace(/,/g, '.');
                             let precioLimpio = parseFloat(strPrecio);
                             if (isNaN(precioLimpio)) precioLimpio = 0;
 
+                            // 3. Cantidad Promoción
                             let strPromoCant = item.promo_cant ? String(item.promo_cant).trim() : '0';
                             let promoCantLimpia = parseFloat(strPromoCant.replace(/,/g, '.')) || 0;
 
+                            // 4. Precio Promoción
                             let strPromo = item.promo_precio ? String(item.promo_precio).trim() : '0';
-                            if (strPromo.includes(',') && strPromo.includes('.')) strPromo = strPromo.replace(/\./g, '').replace(/,/g, '.');
-                            else if (strPromo.includes(',')) strPromo = strPromo.replace(/,/g, '.');
-                            let promoLimpia = parseFloat(strPromo.replace(/\$|\s/g, '')) || 0;
+                            strPromo = strPromo.replace(/\$|\s/g, '').replace(/\./g, '').replace(/,/g, '.');
+                            let promoLimpia = parseFloat(strPromo) || 0;
 
+                            // 5. Precio Combo Final
                             let strComboPrecio = item.combo_precio_final ? String(item.combo_precio_final).trim() : '0';
-                            let comboPrecioLimpio = parseFloat(strComboPrecio.replace(/\$|\s/g, '').replace(/,/g, '.')) || 0;
+                            strComboPrecio = strComboPrecio.replace(/\$|\s/g, '').replace(/\./g, '').replace(/,/g, '.');
+                            let comboPrecioLimpio = parseFloat(strComboPrecio) || 0;
 
                             return {
                                 id: index,
@@ -1067,18 +1073,19 @@
         function cerrarModalHorario() { document.getElementById('modal-fuera-horario').classList.add('hidden'); }
         function forzarEnvioPedido() { cerrarModalHorario(); procesarYEnviarPedido(); }
 
-    async function procesarYEnviarPedido() {
+        // ==========================================
+        // LA VERIFICACIÓN BLINDADA DE PRECIOS
+        // ==========================================
+        async function procesarYEnviarPedido() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
 
-            // Bloqueamos el botón para evitar clics múltiples
             const btn = document.getElementById('btn-confirmar-pedido');
             const textoOriginal = btn.innerHTML;
             btn.innerHTML = `<span class="animate-spin text-xl inline-block mr-2">⏳</span> Verificando precios...`;
             btn.disabled = true;
 
             try {
-                // 1. Bajamos la lista fresca del Excel
                 const urlFresca = URL_CSV_PLANILLA + "&t=" + new Date().getTime();
                 const respuesta = await fetch(urlFresca);
                 const textoCSV = await respuesta.text();
@@ -1090,12 +1097,11 @@
                     complete: function(results) {
                         const datosFrescos = results.data;
                         
-                        // 2. Comparamos lo que tiene en el chango vs lo que dice el Excel ahora mismo
                         carrito.forEach(itemChango => {
                             const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
                             if(itemFresco && itemFresco.precio) {
-                                let strPrecio = String(itemFresco.precio).replace(/\$|\s/g, ''); 
-                                if (strPrecio.includes(',')) strPrecio = strPrecio.replace(/,/g, '.');
+                                // Aplicamos el mismo blindaje argentino en la verificación
+                                let strPrecio = String(itemFresco.precio).replace(/\$|\s/g, '').replace(/\./g, '').replace(/,/g, '.');
                                 const precioFresco = parseFloat(strPrecio);
                                 
                                 if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
@@ -1104,39 +1110,35 @@
                                 }
                             }
                         });
-
+                        
                         btn.innerHTML = textoOriginal;
                         btn.disabled = false;
-
-                        // 3. DECISIÓN: ¿Hubo cambios?
+                        
                         if(huboCambios) {
-                            // Guardamos los nuevos precios en el almacenamiento local
+                            preciosVerificados = true; 
                             guardarCarritoEnStorage();
-                            // Renderizamos de nuevo el changuito para que vea los precios nuevos
                             renderizarListaCheckout(); 
-                            // Avisamos a la doña
+                            actualizarIconoCarritoFlotante(); 
                             document.getElementById('modal-aviso-precio').classList.remove('hidden');
                         } else {
-                            // Todo está OK, saltamos al ticket
                             abrirPantallaTicketOpcion2(carrito);
                         }
                     }
                 });
             } catch (error) {
-                console.error("Error al verificar precios:", error);
                 btn.innerHTML = textoOriginal;
                 btn.disabled = false;
-                // Si falla el internet, enviamos igual para no perder la venta
                 abrirPantallaTicketOpcion2(carrito);
             }
         }
 
-        // Modificamos el cerrarAvisoPrecio para que no abra el ticket de una, 
-        // sino que deje a la doña revisar el carrito actualizado.
+        // ==========================================
+        // CERRAR CARTEL AMARILLO Y QUEDARSE EN CARRITO
+        // ==========================================
         function cerrarAvisoPrecio() { 
+            // Cierra el cartel pero NO avanza al ticket. 
+            // Deja a la doña que vea los nuevos precios.
             document.getElementById('modal-aviso-precio').classList.add('hidden'); 
-            // Ya no abrimos el ticket directo acá, porque la doña tiene que ver los precios nuevos.
-            // Ella sola confirmará de nuevo cuando vea que todo está OK.
         }
 
         function abrirPantallaTicketOpcion2(carrito) {
