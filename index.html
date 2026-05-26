@@ -133,7 +133,7 @@
                 <span class="text-gray-500 font-semibold">Total a pagar:</span>
                 <span class="text-2xl font-black text-juani-blue" id="checkout-total">$0,00</span>
             </div>
-            <button id="btn-confirmar-pedido" onclick="dispararPedidoWhatsApp()" class="w-full bg-juani-red text-white font-black py-4 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-base uppercase tracking-widest">
+            <button id="btn-confirmar-pedido" onclick="verificarHorarioYDisparar()" class="w-full bg-juani-red text-white font-black py-4 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-base uppercase tracking-widest">
                 <span class="text-xl">💬</span> Confirmar Pedido
             </button>
         </div>
@@ -186,6 +186,22 @@
             <div class="flex w-full gap-3">
                 <button onclick="cerrarModalVaciar()" class="w-1/2 bg-gray-100 text-gray-600 font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-transform uppercase tracking-wide text-xs">Cancelar</button>
                 <button onclick="confirmarVaciarCarrito()" class="w-1/2 bg-juani-red text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-transform uppercase tracking-wide text-xs">Sí, vaciar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-fuera-horario" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[80] flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-3xl w-full max-w-sm mx-auto flex flex-col items-center p-6 text-center animate-pop shadow-2xl">
+            <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-3xl mb-4 border-4 border-white shadow-sm">🌙</div>
+            <h2 class="text-xl font-black text-gray-800 mb-2 leading-tight">¡El local está cerrado!</h2>
+            <p class="text-sm text-gray-500 mb-4 leading-relaxed">Tomamos tu pedido para que no te olvides de nada, pero te lo preparamos y confirmamos cuando abramos.</p>
+            <div class="bg-gray-50 rounded-xl p-3 w-full mb-6 border border-gray-100">
+                <span class="block text-xs font-bold text-gray-400 uppercase mb-1">Nuestros horarios:</span>
+                <span class="block text-sm font-black text-juani-blue">9:00 a 13:00 hs<br>17:00 a 20:30 hs</span>
+            </div>
+            <div class="flex w-full gap-3">
+                <button onclick="cerrarModalHorario()" class="w-1/2 bg-gray-100 text-gray-600 font-bold py-3.5 rounded-xl shadow-sm active:scale-95 transition-transform uppercase tracking-wide text-xs">Cancelar</button>
+                <button onclick="forzarEnvioPedido()" class="w-1/2 bg-juani-blue text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-transform uppercase tracking-wide text-xs">Enviar igual</button>
             </div>
         </div>
     </div>
@@ -675,7 +691,6 @@
             const paso = obtenerPaso(productoAbierto);
             let nueva = cantTemporalModal + (cambio * paso);
             
-            // EL FIX: Redondear a entero si no es pesable
             if (!esPesable(productoAbierto)) nueva = Math.round(nueva);
             else nueva = parseFloat(nueva.toFixed(2));
 
@@ -697,7 +712,6 @@
             let nueva = parseFloat(valorEscrito.replace(/,/g, '.'));
             if(isNaN(nueva) || nueva < 0) nueva = 0;
             
-            // EL FIX: Redondear a entero si no es pesable
             if (!esPesable(productoAbierto)) nueva = Math.round(nueva);
             else nueva = parseFloat(nueva.toFixed(2));
 
@@ -936,7 +950,6 @@
                 const paso = obtenerPaso(prod);
                 let nuevaCant = prod.cantidad + (cambio * paso);
                 
-                // EL FIX: Redondear a entero si no es pesable en el carrito
                 if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
                 else nuevaCant = parseFloat(nuevaCant.toFixed(2));
 
@@ -961,7 +974,6 @@
                 let nuevaCant = parseFloat(valorEscrito.replace(/,/g, '.'));
                 if(isNaN(nuevaCant) || nuevaCant < 0) nuevaCant = 0;
                 
-                // EL FIX: Redondear a entero si no es pesable en el carrito
                 if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
                 else nuevaCant = parseFloat(nuevaCant.toFixed(2));
 
@@ -988,7 +1000,40 @@
             }
         }
 
-        async function dispararPedidoWhatsApp() {
+        // ====== RELOJ DEL LOCAL ======
+        function estaAbierto() {
+            const ahora = new Date();
+            const hora = ahora.getHours();
+            const minutos = ahora.getMinutes();
+            const tiempoMilitar = hora + (minutos / 60);
+
+            const abiertoMañana = tiempoMilitar >= 9 && tiempoMilitar < 13;
+            const abiertoTarde = tiempoMilitar >= 17 && tiempoMilitar < 20.5;
+
+            return abiertoMañana || abiertoTarde;
+        }
+
+        function verificarHorarioYDisparar() {
+            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
+            if(carrito.length === 0) return;
+
+            if (estaAbierto()) {
+                procesarYEnviarPedido();
+            } else {
+                document.getElementById('modal-fuera-horario').classList.remove('hidden');
+            }
+        }
+
+        function cerrarModalHorario() {
+            document.getElementById('modal-fuera-horario').classList.add('hidden');
+        }
+
+        function forzarEnvioPedido() {
+            cerrarModalHorario();
+            procesarYEnviarPedido();
+        }
+
+        async function procesarYEnviarPedido() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
             if (preciosVerificados) {
@@ -1088,7 +1133,7 @@
             if(valorPagoElegido === 'credito') { totalFinal = totalFinal * 1.10; }
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n¿Me confirmarían si tienen stock? ¡Gracias!`;
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
+            const NUMERO_TELEFONO_JUANI = "5491100000000"; 
             window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
         }
 
