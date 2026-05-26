@@ -1079,9 +1079,15 @@
         function cerrarModalHorario() { document.getElementById('modal-fuera-horario').classList.add('hidden'); }
         function forzarEnvioPedido() { cerrarModalHorario(); procesarYEnviarPedido(); }
 
-        async function procesarYEnviarPedido() {
+async function procesarYEnviarPedido() {
             const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
             if(carrito.length === 0) return;
+
+            // Si ya verificamos los precios, saltamos directo al ticket
+            if (preciosVerificados) {
+                abrirPantallaTicketOpcion2(carrito);
+                return;
+            }
 
             const btn = document.getElementById('btn-confirmar-pedido');
             const textoOriginal = btn.innerHTML;
@@ -1103,9 +1109,8 @@
                         carrito.forEach(itemChango => {
                             const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
                             if(itemFresco && itemFresco.precio) {
-                                // APLICAMOS EL TRADUCTOR BIÓNICO TAMBIÉN ACÁ
                                 const precioFresco = limpiarNumeroArgento(itemFresco.precio);
-                                
+                                // Comparamos el precio de la base con el que teníamos en memoria
                                 if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
                                     itemChango.precio = precioFresco;
                                     huboCambios = true;
@@ -1117,6 +1122,7 @@
                         btn.disabled = false;
                         
                         if(huboCambios) {
+                            // MARCAMOS COMO VERIFICADO PARA QUE NO VUELVA A PASAR
                             preciosVerificados = true; 
                             guardarCarritoEnStorage();
                             renderizarListaCheckout(); 
