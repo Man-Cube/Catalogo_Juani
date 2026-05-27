@@ -46,7 +46,6 @@
                     <div class="w-11 h-11 rounded-full shrink-0 shadow-[0_3px_8px_rgba(0,0,0,0.25)] overflow-hidden border-2 border-white bg-white flex items-center justify-center">
                         <img src="logo.png" alt="Logo Juani" class="w-full h-full object-cover">
                     </div>
-                    
                     <div class="flex-1 flex items-center px-3">
                         <input type="text" id="buscador-cliente" oninput="filtrarCatalogo()" onkeydown="if(event.key==='Enter') this.blur();" placeholder="Buscar productos..." class="w-full bg-transparent outline-none text-sm text-gray-700 font-bold placeholder-gray-400">
                         <span class="text-gray-400 text-lg ml-1">🔍</span>
@@ -268,8 +267,8 @@
         // INIT DE LA APP Y LA TRAMPA DEL BOTÓN ATRÁS
         window.addEventListener('load', () => { 
             if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(e => {}); }
-            // Cargamos la trampa fantasma para atajar el primer botón 'atrás'
-            history.pushState(null, '', window.location.href);
+            // Engañamos al navegador apenas carga la app para que el primer "atrás" no cierre la ventana
+            history.pushState({ trampa: 'activa' }, '', window.location.href);
         });
 
         const URL_CSV_PLANILLA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6vRsDn1Xlsgb0Phw2y26b9ZSWM7ZfYf933MyKKm5Yncxihx90-vqhCHI2OukHoEVWcb2T4Wpi0RsX/pub?output=csv";
@@ -284,7 +283,6 @@
         let subtotalCarritoPuro = 0;
         let modoEntrega = 'retiro';
 
-        // Lógica del traductor argento
         function limpiarNumeroArgento(val) {
             if(!val) return 0;
             let str = String(val).trim().replace(/\$|\s/g, '');
@@ -368,39 +366,62 @@
             setTimeout(() => { toast.classList.add('opacity-0'); }, 3500);
         }
 
-        // CONTROL CENTRAL DE NAVEGACIÓN Y BOTÓN ATRÁS
+        // EL CEREBRO DE LA NAVEGACIÓN Y EL BOTÓN ATRÁS
         window.addEventListener('popstate', function(event) {
+            // 1. Cierra cualquier cosa que flote arriba de todo
             if (!document.getElementById('modal-producto').classList.contains('hidden')) {
                 cerrarModalProductoVisualmente(); 
                 history.pushState(null, '', window.location.href);
                 return; 
             }
-            cerrarModalVaciar(); document.getElementById('pantalla-ticket-final').classList.add('hidden');
-            document.getElementById('modal-aviso-precio').classList.add('hidden'); document.getElementById('modal-fuera-horario').classList.add('hidden');
-            
+            if (!document.getElementById('modal-vaciar-carrito').classList.contains('hidden')) {
+                cerrarModalVaciar(); 
+                history.pushState(null, '', window.location.href);
+                return; 
+            }
+            if (!document.getElementById('pantalla-ticket-final').classList.contains('hidden')) {
+                cerrarPantallaTicket(); 
+                history.pushState(null, '', window.location.href);
+                return; 
+            }
+            if (!document.getElementById('modal-salir-app').classList.contains('hidden')) {
+                cancelarSalida();
+                history.pushState(null, '', window.location.href);
+                return;
+            }
+
             const hash = window.location.hash;
             
+            // 2. Control de pantallas completas (Carrito vs Catálogo)
             if (hash === '#carrito') {
-                document.getElementById('pantalla-catalogo').classList.add('hidden');
-                document.getElementById('pantalla-carrito').classList.remove('hidden');
+                abrirPantallaCarrito(true);
             } else if (hash.startsWith('#cat-')) {
-                cerrarCarritoVisualmente(); 
+                cerrarCarritoVisualmente(true);
                 seleccionarCategoria(decodeURIComponent(hash.replace('#cat-', '')), true);
             } else {
+                // Estaban en la raíz (Catálogo principal)
                 if (!document.getElementById('pantalla-carrito').classList.contains('hidden')) {
-                    cerrarCarritoVisualmente();
-                    history.pushState(null, '', window.location.href); 
+                    // Si estaban en el changuito, vuelven al catálogo
+                    cerrarCarritoVisualmente(true);
+                } else if (categoriaSeleccionada !== "TODOS") {
+                    // Si estaban mirando fiambres, vuelven a ver todo
+                    seleccionarCategoria('TODOS', true);
                 } else {
-                    // TRAMPA DE SALIDA ACTIVA: Estaban en inicio y quisieron salir
+                    // TRAMPA ACTIVADA: ¡Están en la puerta de salida!
                     document.getElementById('modal-salir-app').classList.remove('hidden');
-                    history.pushState(null, '', window.location.href); 
+                    history.pushState(null, '', window.location.href);
                 }
             }
         });
 
         // FUNCIONES DE SALIDA DE APP
-        function cancelarSalida() { document.getElementById('modal-salir-app').classList.add('hidden'); }
-        function confirmarSalida() { history.go(-2); setTimeout(() => window.close(), 300); }
+        function cancelarSalida() { 
+            document.getElementById('modal-salir-app').classList.add('hidden'); 
+        }
+        function confirmarSalida() { 
+            history.go(-2); 
+            setTimeout(() => { window.close(); }, 300);
+        }
 
         async function inicializarCatalogo() {
             try {
@@ -553,7 +574,6 @@
             contenedor.innerHTML = ''; 
             const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
 
-            // CONTROL DEL BANNER PUBLICITARIO
             if (categoriaSeleccionada === "TODOS" && busqueda === "") { bannerPublicidad.classList.remove('hidden'); } 
             else { bannerPublicidad.classList.add('hidden'); }
 
@@ -656,7 +676,6 @@
                 if (cat === 'TODOS') { if (categoriaAnterior !== 'TODOS') { history.pushState(null, '', window.location.pathname + window.location.search); } } 
                 else { if (categoriaAnterior === 'TODOS') { history.pushState(null, '', '#cat-' + encodeURIComponent(cat)); } else { history.replaceState(null, '', '#cat-' + encodeURIComponent(cat)); } }
             }
-            // EFECTO ASCENSOR
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -723,14 +742,28 @@
             if(totalLineas > 0) { badge.innerText = totalLineas; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
         }
 
-        function abrirPantallaCarrito() {
+        function abrirPantallaCarrito(desdeHistorial = false) {
             document.getElementById('pantalla-catalogo').classList.add('hidden'); 
             document.getElementById('pantalla-carrito').classList.remove('hidden'); 
-            renderizarListaCheckout(); window.scrollTo(0,0); history.pushState({ vista: 'carrito' }, '', '#carrito');
+            renderizarListaCheckout(); window.scrollTo(0,0); 
+            if(!desdeHistorial) { history.pushState({ vista: 'carrito' }, '', '#carrito'); }
         }
 
-        function cerrarPantallaCarrito() { if(window.location.hash === '#carrito') { history.back(); } else { cerrarCarritoVisualmente(); } }
-        function cerrarCarritoVisualmente() { document.getElementById('pantalla-carrito').classList.add('hidden'); document.getElementById('pantalla-catalogo').classList.remove('hidden'); renderizarCatalogo(); }
+        function cerrarPantallaCarrito() { 
+            if(window.location.hash === '#carrito') { history.back(); } 
+            else { cerrarCarritoVisualmente(); } 
+        }
+
+        function cerrarCarritoVisualmente(desdeHistorial = false) { 
+            document.getElementById('pantalla-carrito').classList.add('hidden'); 
+            document.getElementById('pantalla-catalogo').classList.remove('hidden'); 
+            renderizarCatalogo(); 
+            if(!desdeHistorial) {
+                if(window.location.hash === '#carrito') { history.back(); } 
+                else { history.pushState(null, '', window.location.pathname + window.location.search); }
+            }
+        }
+        
         function vaciarCarrito() { document.getElementById('modal-vaciar-carrito').classList.remove('hidden'); }
         function cerrarModalVaciar() { document.getElementById('modal-vaciar-carrito').classList.add('hidden'); }
 
