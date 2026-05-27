@@ -665,12 +665,22 @@
         }
 
         function seleccionarCategoria(cat, desdeHistorial = false) {
-            let categoriaAnterior = categoriaSeleccionada; categoriaSeleccionada = cat; subCategoriaSeleccionada = "TODOS";
-            document.getElementById('buscador-cliente').value = ""; renderizarBarraCategorias(); renderizarCatalogo();
+            let categoriaAnterior = categoriaSeleccionada;
+            categoriaSeleccionada = cat;
+            subCategoriaSeleccionada = "TODOS";
+            document.getElementById('buscador-cliente').value = "";
+            renderizarBarraCategorias();
+            renderizarCatalogo();
             if (!desdeHistorial) {
-                if (cat === 'TODOS') { if (categoriaAnterior !== 'TODOS') { history.pushState(null, '', window.location.pathname + window.location.search); } } 
-                else { if (categoriaAnterior === 'TODOS') { history.pushState(null, '', '#cat-' + encodeURIComponent(cat)); } else { history.replaceState(null, '', '#cat-' + encodeURIComponent(cat)); } }
+                if (cat === 'TODOS') {
+                    if (categoriaAnterior !== 'TODOS') { history.pushState(null, '', window.location.pathname + window.location.search); }
+                } else {
+                    if (categoriaAnterior === 'TODOS') { history.pushState(null, '', '#cat-' + encodeURIComponent(cat)); } 
+                    else { history.replaceState(null, '', '#cat-' + encodeURIComponent(cat)); }
+                }
             }
+            // ACÁ ESTÁ LA MAGIA DEL ASCENSOR: Sube arriba de todo suavemente
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function filtrarCatalogo() { renderizarCatalogo(); }
