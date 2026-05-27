@@ -515,25 +515,59 @@
         // ==========================================
         // ACÁ ESTÁ EL FIX ESTÉTICO DE LOS EMOJIS
         // ==========================================
-        function renderizarCatalogo() {
-            const contenedor = document.getElementById('contenedor-productos'); const barraSub = document.getElementById('barra-subcategorias');
-            contenedor.innerHTML = ''; const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
+      function renderizarCatalogo() {
+            const contenedor = document.getElementById('contenedor-productos');
+            const barraSub = document.getElementById('barra-subcategorias');
+            const bannerPublicidad = document.getElementById('banner-container'); // <--- LA MAGIA DEL BANNER ESTÁ ACÁ
+            
+            contenedor.innerHTML = '';
+            const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
+
+            // Si están en la pantalla principal (TODOS) y no están usando el buscador, el banner se ve. Si no, se oculta.
+            if (categoriaSeleccionada === "TODOS" && busqueda === "") {
+                bannerPublicidad.classList.remove('hidden');
+            } else {
+                bannerPublicidad.classList.add('hidden');
+            }
 
             if (busqueda !== "") {
-                const filtrados = BD_PRODUCTOS.filter(p => p.nombre.toLowerCase().includes(busqueda) || p.codigo.includes(busqueda) || p.subcategoria.toLowerCase().includes(busqueda));
+                const filtrados = BD_PRODUCTOS.filter(p => 
+                    p.nombre.toLowerCase().includes(busqueda) || 
+                    p.codigo.includes(busqueda) ||
+                    p.subcategoria.toLowerCase().includes(busqueda)
+                );
                 barraSub.classList.add('hidden');
-                if(filtrados.length === 0) { contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full"; contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No encontramos productos con esa búsqueda.</p>`; return; }
-                contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full"; filtrados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla')); actualizarIconoCarritoFlotante(); return;
+                if(filtrados.length === 0) {
+                    contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full";
+                    contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No encontramos productos con esa búsqueda.</p>`;
+                    return;
+                }
+                contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full";
+                filtrados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
+                actualizarIconoCarritoFlotante();
+                return;
             }
 
             if (categoriaSeleccionada === "TODOS" || categoriaSeleccionada === "PROMOS" || categoriaSeleccionada === "DESTACADOS") {
                 barraSub.classList.add('hidden');
                 contenedor.className = "pb-24 max-w-md mx-auto w-full flex flex-col gap-6 pt-2 animate-fade-in";
                 
-                const listaPromos = BD_PRODUCTOS.filter(p => esPromo(p)); const listaDestacados = BD_PRODUCTOS.filter(p => esDestacado(p));
+                const listaPromos = BD_PRODUCTOS.filter(p => esPromo(p));
+                const listaDestacados = BD_PRODUCTOS.filter(p => esDestacado(p));
                 
-                if(categoriaSeleccionada === "PROMOS") { contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in"; listaPromos.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla')); actualizarIconoCarritoFlotante(); return; }
-                if(categoriaSeleccionada === "DESTACADOS") { contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in"; listaDestacados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla')); actualizarIconoCarritoFlotante(); return; }
+                if(categoriaSeleccionada === "PROMOS") {
+                    contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
+                    listaPromos.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
+                    actualizarIconoCarritoFlotante();
+                    return; 
+                }
+
+                if(categoriaSeleccionada === "DESTACADOS") {
+                    contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
+                    listaDestacados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
+                    actualizarIconoCarritoFlotante();
+                    return; 
+                }
 
                 if(listaDestacados.length > 0 && categoriaSeleccionada === "TODOS") {
                     let htmlCarruselDestacados = `
@@ -542,13 +576,16 @@
                             <h2 class="text-lg font-black text-yellow-600 uppercase tracking-tight">⭐ DESTACADOS DEL LOCAL</h2>
                             <button onclick="seleccionarCategoria('DESTACADOS')" class="text-yellow-600 text-xs font-bold bg-yellow-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Ver todos</button>
                         </div>
-                        <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">`;
+                        <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">
+                    `;
                     listaDestacados.slice(0, 10).forEach(prod => { htmlCarruselDestacados += generarHTMLTarjeta(prod, 'carrusel'); });
                     htmlCarruselDestacados += `
                             <div onclick="seleccionarCategoria('DESTACADOS')" class="bg-yellow-50 rounded-2xl border border-yellow-100 p-2 flex flex-col items-center justify-center w-[140px] shrink-0 snap-start cursor-pointer active:scale-95 transition-transform h-auto min-h-[160px] mt-2 ml-2">
                                 <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3"><span class="text-xl">⭐</span></div>
                                 <span class="text-xs font-bold text-yellow-600 uppercase text-center">Ver todos</span>
-                            </div></div></div>`;
+                            </div>
+                        </div>
+                    </div>`;
                     contenedor.innerHTML += htmlCarruselDestacados;
                 }
 
@@ -559,13 +596,16 @@
                             <h2 class="text-lg font-black text-juani-red uppercase tracking-tight">🔥 PROMOS IMPERDIBLES</h2>
                             <button onclick="seleccionarCategoria('PROMOS')" class="text-juani-red text-xs font-bold bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Ver todas</button>
                         </div>
-                        <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">`;
+                        <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">
+                    `;
                     listaPromos.slice(0, 10).forEach(prod => { htmlCarruselPromos += generarHTMLTarjeta(prod, 'carrusel'); });
                     htmlCarruselPromos += `
                             <div onclick="seleccionarCategoria('PROMOS')" class="bg-red-50 rounded-2xl border border-red-100 p-2 flex flex-col items-center justify-center w-[140px] shrink-0 snap-start cursor-pointer active:scale-95 transition-transform h-auto min-h-[160px] mt-2 ml-2">
                                 <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3"><span class="text-xl">🔥</span></div>
                                 <span class="text-xs font-bold text-red-600 uppercase text-center">Ver todas</span>
-                            </div></div></div>`;
+                            </div>
+                        </div>
+                    </div>`;
                     contenedor.innerHTML += htmlCarruselPromos;
                 }
                 
@@ -590,7 +630,8 @@
                                 <h2 class="text-lg font-black text-gray-800 uppercase tracking-tight">${icono} ${nombreRealCategoria}</h2>
                                 <button onclick="seleccionarCategoria('${nombreRealCategoria}')" class="text-juani-blue text-xs font-bold bg-blue-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Ver más</button>
                             </div>
-                            <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">`;
+                            <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">
+                        `;
                         prodsCat.slice(0, 8).forEach(prod => { htmlCarrusel += generarHTMLTarjeta(prod, 'carrusel'); });
                         htmlCarrusel += `
                                 <div onclick="seleccionarCategoria('${nombreRealCategoria}')" class="bg-gray-50 rounded-2xl border border-gray-200 p-2 flex flex-col items-center justify-center w-[140px] shrink-0 snap-start cursor-pointer active:scale-95 transition-transform h-auto min-h-[160px]">
@@ -598,16 +639,27 @@
                                         <svg class="w-6 h-6 text-juani-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                                     </div>
                                     <span class="text-xs font-bold text-gray-600 uppercase">Ver todos</span>
-                                </div></div></div>`;
+                                </div>
+                            </div>
+                        </div>`;
                         contenedor.innerHTML += htmlCarrusel;
                     }
                 });
-            } else {
+            } 
+            else {
                 let filtrados = BD_PRODUCTOS.filter(p => p.categoria.toLowerCase() === categoriaSeleccionada.toLowerCase());
-                barraSub.classList.remove('hidden'); renderizarBarraSubcategorias(filtrados);
-                if (subCategoriaSeleccionada !== "TODOS") { filtrados = filtrados.filter(p => p.subcategoria.toLowerCase() === subCategoriaSeleccionada.toLowerCase()); }
-                if(filtrados.length === 0) { contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full"; contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No hay productos en esta sección.</p>`; } 
-                else { contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in"; filtrados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla')); }
+                barraSub.classList.remove('hidden');
+                renderizarBarraSubcategorias(filtrados);
+                if (subCategoriaSeleccionada !== "TODOS") {
+                    filtrados = filtrados.filter(p => p.subcategoria.toLowerCase() === subCategoriaSeleccionada.toLowerCase());
+                }
+                if(filtrados.length === 0) {
+                    contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full";
+                    contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No hay productos en esta sección.</p>`;
+                } else {
+                    contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
+                    filtrados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
+                }
             }
             actualizarIconoCarritoFlotante();
         }
