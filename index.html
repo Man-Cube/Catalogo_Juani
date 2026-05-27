@@ -47,13 +47,18 @@
 
     <div id="pantalla-catalogo" class="block">
         <header class="bg-juani-blue sticky top-0 z-50 rounded-b-3xl shadow-lg pb-2 pt-4">
-            <div class="px-4 flex items-center gap-3 mb-2">
-                <div class="w-11 h-11 bg-white/10 rounded-full flex items-center justify-center shrink-0 shadow-inner border border-white/20">
-                    <span class="text-xl">🏪</span>
-                </div>
-                <div class="bg-white rounded-full flex-1 flex items-center px-4 py-2.5 shadow-inner">
-                    <span class="text-gray-400 text-base mr-2">🔍</span>
-                    <input type="text" id="buscador-cliente" oninput="filtrarCatalogo()" onkeydown="if(event.key==='Enter') this.blur();" placeholder="¿Qué buscás hoy, doña?" class="w-full bg-transparent outline-none text-sm text-gray-700 font-medium placeholder-gray-400">
+            <div class="pl-4 pr-16 flex items-center mb-2"> 
+                
+                <div class="bg-white rounded-full flex-1 flex items-center p-1 shadow-md">
+                    
+                    <div class="w-11 h-11 rounded-full shrink-0 shadow-[0_3px_8px_rgba(0,0,0,0.25)] overflow-hidden border-2 border-white bg-white flex items-center justify-center">
+                        <img src="logo.png" alt="Logo Juani" class="w-full h-full object-cover">
+                    </div>
+                    
+                    <div class="flex-1 flex items-center px-3">
+                        <input type="text" id="buscador-cliente" oninput="filtrarCatalogo()" onkeydown="if(event.key==='Enter') this.blur();" placeholder="Buscar productos..." class="w-full bg-transparent outline-none text-sm text-gray-700 font-bold placeholder-gray-400">
+                        <span class="text-gray-400 text-lg ml-1">🔍</span>
+                    </div>
                 </div>
             </div>
 
