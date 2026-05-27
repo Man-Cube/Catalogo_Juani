@@ -29,7 +29,6 @@
         .flying-item { position: fixed; z-index: 9999; transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1); pointer-events: none; border-radius: 50%; box-shadow: 0 10px 20px rgba(0,0,0,0.2); opacity: 1; }
         input[type="text"] { -moz-appearance: textfield; }
         
-        /* Estilo simulador de papel térmico de tickeadora */
         .ticket-papel { background: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-family: 'Courier New', Courier, monospace; position: relative; border-bottom: 8px dashed #cccccc; }
     </style>
 </head>
@@ -212,43 +211,35 @@
 
     <div id="pantalla-ticket-final" class="hidden fixed inset-0 bg-gray-900 bg-opacity-80 z-[100] overflow-y-auto p-4 flex flex-col justify-start items-center">
         <div class="w-full max-w-sm my-4 flex flex-col gap-4">
-            
             <div id="bloque-ticket-imprimible" class="ticket-papel p-6 text-xs text-gray-800">
                 <div class="text-center font-bold mb-4 uppercase tracking-widest border-b border-gray-300 pb-2">
                     <span class="text-lg">AUTOSERVICIO JUANI</span><br>
                     <span class="text-[10px] font-normal">Berazategui, Buenos Aires</span><br>
                     <span class="text-[9px] font-normal" id="ticket-fecha-hora">Fecha: 00/00/0000 00:00</span>
                 </div>
-                
                 <div class="border-b border-dashed border-gray-400 pb-2 mb-2 font-bold flex justify-between">
                     <span>DETALLE PRODUCTO</span>
                     <span>SUBTOTAL</span>
                 </div>
-                
                 <div id="ticket-items-list" class="flex flex-col gap-2 border-b border-dashed border-gray-400 pb-3 mb-3"></div>
-                
                 <div class="flex flex-col gap-1 border-b border-gray-300 pb-2 mb-2">
                     <div class="flex justify-between"><span>SUBTOTAL COMPRA:</span><span id="tk-subtotal">$0,00</span></div>
                     <div id="tk-row-combos" class="flex justify-between text-green-700 hidden"><span>DESCUENTO COMBOS:</span><span id="tk-combos">-$0,00</span></div>
                     <div id="tk-row-recargo" class="flex justify-between text-red-600 hidden"><span>RECARGO TARJETA (10%):</span><span id="tk-recargo">+$0,00</span></div>
                 </div>
-                
                 <div class="flex justify-between text-base font-black border-b-2 border-double border-gray-800 pb-1 mb-4">
                     <span>TOTAL A PAGAR:</span>
                     <span id="tk-total">$0,00</span>
                 </div>
-                
                 <div class="text-[10px] space-y-1 font-mono leading-tight">
                     <p id="tk-entrega">📍 FORMA: -</p>
                     <p id="tk-pago">💳 PAGO: -</p>
                     <p id="tk-cliente-info" class="hidden"></p>
                 </div>
-                
                 <div class="text-center mt-6 border-t border-gray-200 pt-4 font-bold text-[10px] tracking-wider">
                     *** ¡GRACIAS POR TU COMPRA, DOÑA! ***
                 </div>
             </div>
-            
             <div class="flex flex-col gap-2">
                 <button onclick="descargarTicketPDF()" class="w-full bg-white border-2 border-juani-blue text-juani-blue font-black py-3 rounded-xl shadow-md active:scale-95 transition-transform text-xs uppercase flex items-center justify-center gap-2">
                     📄 Descargar Ticket PDF
@@ -278,20 +269,12 @@
         let subtotalCarritoPuro = 0;
         let modoEntrega = 'retiro';
 
-        // =========================================================
-        // TRADUCTOR BIONICO: CONVIERTE CUALQUIER FORMATO A NUMERO REAL
-        // =========================================================
         function limpiarNumeroArgento(val) {
             if(!val) return 0;
             let str = String(val).trim().replace(/\$|\s/g, '');
             if (str === '') return 0;
-            if (str.includes(',')) {
-                str = str.replace(/\./g, '').replace(',', '.');
-            } else {
-                if (!/\.\d{1,2}$/.test(str)) {
-                    str = str.replace(/\./g, '');
-                }
-            }
+            if (str.includes(',')) { str = str.replace(/\./g, '').replace(',', '.'); } 
+            else { if (!/\.\d{1,2}$/.test(str)) { str = str.replace(/\./g, ''); } }
             let num = parseFloat(str);
             return isNaN(num) ? 0 : num;
         }
@@ -308,9 +291,7 @@
                     const chango = JSON.parse(guardado);
                     chango.forEach(itemGuardado => {
                         const prod = BD_PRODUCTOS.find(p => p.codigo === itemGuardado.codigo);
-                        if(prod) {
-                            prod.cantidad = itemGuardado.cantidad > prod.stockDisponible ? prod.stockDisponible : itemGuardado.cantidad;
-                        }
+                        if(prod) { prod.cantidad = itemGuardado.cantidad > prod.stockDisponible ? prod.stockDisponible : itemGuardado.cantidad; }
                     });
                 } catch(e) {}
             }
@@ -373,23 +354,18 @@
 
         window.addEventListener('popstate', function(event) {
             if (!document.getElementById('modal-producto').classList.contains('hidden')) {
-                cerrarModalProductoVisualmente();
-                return; 
+                cerrarModalProductoVisualmente(); return; 
             }
-            cerrarModalVaciar();
-            
-            document.getElementById('pantalla-ticket-final').classList.add('hidden');
+            cerrarModalVaciar(); document.getElementById('pantalla-ticket-final').classList.add('hidden');
             const hash = window.location.hash;
             if (hash === '#carrito') {
                 document.getElementById('pantalla-catalogo').classList.add('hidden');
                 document.getElementById('btn-carrito-flotante').classList.add('hidden');
                 document.getElementById('pantalla-carrito').classList.remove('hidden');
             } else if (hash.startsWith('#cat-')) {
-                cerrarCarritoVisualmente();
-                seleccionarCategoria(decodeURIComponent(hash.replace('#cat-', '')), true);
+                cerrarCarritoVisualmente(); seleccionarCategoria(decodeURIComponent(hash.replace('#cat-', '')), true);
             } else {
-                cerrarCarritoVisualmente();
-                seleccionarCategoria('TODOS', true);
+                cerrarCarritoVisualmente(); seleccionarCategoria('TODOS', true);
             }
         });
 
@@ -407,33 +383,24 @@
                         });
 
                         BD_PRODUCTOS = productosDisponibles.map((item, index) => {
-                            
                             let stockReal = 9999;
-                            if (item.stock && String(item.stock).trim() !== '') {
-                                stockReal = limpiarNumeroArgento(item.stock);
-                            }
-                            
+                            if (item.stock && String(item.stock).trim() !== '') { stockReal = limpiarNumeroArgento(item.stock); }
                             let precioLimpio = limpiarNumeroArgento(item.precio);
                             let promoCantLimpia = limpiarNumeroArgento(item.promo_cant);
                             let promoLimpia = limpiarNumeroArgento(item.promo_precio);
                             let comboPrecioLimpio = limpiarNumeroArgento(item.combo_precio_final);
 
                             return {
-                                id: index,
-                                codigo: item.codigo ? String(item.codigo).trim() : '',
+                                id: index, codigo: item.codigo ? String(item.codigo).trim() : '',
                                 nombre: item.nombre ? item.nombre.trim() : 'Sin nombre',
                                 categoria: item.categoria ? item.categoria.trim() : 'Otros',
                                 subcategoria: item.subcategoria ? item.subcategoria.trim() : 'General',
-                                precio: precioLimpio,
-                                imagen: item.imagen ? item.imagen.trim() : '',
+                                precio: precioLimpio, imagen: item.imagen ? item.imagen.trim() : '',
                                 descripcion: item.descripcion ? item.descripcion.trim() : 'Sin descripción adicional.',
-                                promo_cant: promoCantLimpia,
-                                promo_precio: promoLimpia,
+                                promo_cant: promoCantLimpia, promo_precio: promoLimpia,
                                 destacado_col: item.destacado ? String(item.destacado).trim() : '',
                                 combo_id: item.combo_id ? String(item.combo_id).trim() : '',
-                                combo_precio_final: comboPrecioLimpio,
-                                stockDisponible: stockReal,
-                                cantidad: 0
+                                combo_precio_final: comboPrecioLimpio, stockDisponible: stockReal, cantidad: 0
                             };
                         });
                         
@@ -449,9 +416,7 @@
 
                         document.getElementById('loading-catalogo').classList.add('hidden');
                         document.getElementById('contenedor-productos').classList.remove('hidden');
-                        renderizarBarraCategorias();
-                        renderizarCatalogo();
-                        actualizarIconoCarritoFlotante();
+                        renderizarBarraCategorias(); renderizarCatalogo(); actualizarIconoCarritoFlotante();
                     }
                 });
             } catch (error) { document.getElementById('loading-catalogo').innerText = "❌ Error al cargar la base de datos."; }
@@ -468,8 +433,7 @@
             barra.innerHTML = '';
             
             categoriesList.forEach(cat => {
-                const btn = document.createElement('button');
-                btn.id = `cat-${cat}`;
+                const btn = document.createElement('button'); btn.id = `cat-${cat}`;
                 const catLimpia = cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 let imgUrl = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&q=80'; 
                 
@@ -478,9 +442,10 @@
                 if (cat === 'DESTACADOS') imgUrl = 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=150&q=80';
                 if (catLimpia.includes('almacen')) imgUrl = 'https://images.unsplash.com/photo-1553531384-cc64ac80f931?w=150&q=80';
                 if (catLimpia.includes('bebida') || catLimpia.includes('gaseosa')) imgUrl = 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=150&q=80';
-                if (catLimpia.includes('fiambre') || catLimpia.includes('queso')) imgUrl = 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=150&q=80';
+                if (catLimpia.includes('fiambre') || catLimpia.includes('queso') || catLimpia.includes('lacteo')) imgUrl = 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=150&q=80';
                 if (catLimpia.includes('fresco') || catLimpia.includes('verduleria')) imgUrl = 'https://images.unsplash.com/photo-1566385101042-1a010c159fcf?w=150&q=80';
-                if (catLimpia.includes('limpieza')) imgUrl = 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=150&q=80';
+                if (catLimpia.includes('limpieza') || catLimpia.includes('perfumeria')) imgUrl = 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=150&q=80';
+                if (catLimpia.includes('kiosco') || catLimpia.includes('golosina') || catLimpia.includes('galletita')) imgUrl = 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=150&q=80';
 
                 const isSelected = categoriaSeleccionada.toLowerCase() === cat.toLowerCase();
                 btn.className = `flex flex-col items-center gap-1.5 shrink-0 transition-all ${isSelected ? 'opacity-100 scale-110 drop-shadow-md' : 'opacity-70'}`;
@@ -496,34 +461,21 @@
         }
 
         function renderizarBarraSubcategorias(productosFiltrados) {
-            const barra = document.getElementById('barra-subcategorias');
-            barra.innerHTML = '';
+            const barra = document.getElementById('barra-subcategorias'); barra.innerHTML = '';
             const subcategoriasUnicas = ["TODOS", ...new Set(productosFiltrados.map(p => p.subcategoria))];
-            if (subcategoriasUnicas.length <= 2 && subcategoriasUnicas.includes("General")) {
-                barra.classList.add('hidden');
-                return;
-            }
+            if (subcategoriasUnicas.length <= 2 && subcategoriasUnicas.includes("General")) { barra.classList.add('hidden'); return; }
             subcategoriasUnicas.forEach(sub => {
                 const btn = document.createElement('button');
                 btn.className = `px-4 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${subCategoriaSeleccionada === sub ? 'bg-white text-juani-blue shadow-md' : 'bg-blue-900/50 text-blue-100'}`;
                 btn.innerText = sub;
-                btn.onclick = () => {
-                    subCategoriaSeleccionada = sub;
-                    renderizarCatalogo();
-                };
+                btn.onclick = () => { subCategoriaSeleccionada = sub; renderizarCatalogo(); };
                 barra.appendChild(btn);
             });
         }
 
         function generarHTMLTarjeta(prod, modo) {
-            const esItemPromo = esPromo(prod);
-            const esItemDestacado = esDestacado(prod);
-            const esOfertaVisual = esItemPromo || esItemDestacado;
-
-            const elementoImagen = prod.imagen ? 
-                `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
-                `<div class="text-4xl text-gray-300">📦</div>`;
-
+            const esItemPromo = esPromo(prod); const esItemDestacado = esDestacado(prod); const esOfertaVisual = esItemPromo || esItemDestacado;
+            const elementoImagen = prod.imagen ? `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` : `<div class="text-4xl text-gray-300">📦</div>`;
             let bordeClase = "border border-gray-100";
             if (esItemPromo) bordeClase = "border-2 border-red-500 shadow-[0_0_10px_rgba(229,57,53,0.15)]";
             else if (esItemDestacado) bordeClase = "border-2 border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.15)]";
@@ -532,9 +484,7 @@
                 ? `bg-white rounded-2xl shadow-sm ${bordeClase} p-2 flex flex-col relative w-[140px] shrink-0 snap-start cursor-pointer transition-transform active:scale-95 ${esOfertaVisual ? 'mt-2 ml-2' : ''}` 
                 : `bg-white rounded-2xl shadow-sm ${bordeClase} p-2 flex flex-col relative animate-fade-in h-full cursor-pointer ${esOfertaVisual ? 'mt-2 ml-2' : ''}`;
 
-            const badgeCantidad = prod.cantidad > 0 
-                ? `<div class="absolute top-1 right-1 bg-juani-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md border border-white z-20">${esPesable(prod) ? prod.cantidad + ' kg' : prod.cantidad}</div>` 
-                : '';
+            const badgeCantidad = prod.cantidad > 0 ? `<div class="absolute top-1 right-1 bg-juani-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md border border-white z-20">${esPesable(prod) ? prod.cantidad + ' kg' : prod.cantidad}</div>` : '';
 
             let badgeFuego = '';
             if (esItemPromo) {
@@ -550,8 +500,7 @@
             <div class="${clasesContenedor}" onclick="abrirModalProducto(${prod.id})">
                 ${badgeFuego}
                 <div class="w-full aspect-square bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center mb-2 p-2 relative overflow-hidden shrink-0">
-                    ${elementoImagen}
-                    ${badgeCantidad}
+                    ${elementoImagen}${badgeCantidad}
                 </div>
                 <div class="flex flex-col flex-1 mt-1">
                     <h3 class="text-[11px] leading-tight font-bold text-gray-800 line-clamp-2 min-h-[28px] mb-1">${prod.nombre.toUpperCase()}</h3>
@@ -563,50 +512,28 @@
             </div>`;
         }
 
+        // ==========================================
+        // ACÁ ESTÁ EL FIX ESTÉTICO DE LOS EMOJIS
+        // ==========================================
         function renderizarCatalogo() {
-            const contenedor = document.getElementById('contenedor-productos');
-            const barraSub = document.getElementById('barra-subcategorias');
-            contenedor.innerHTML = '';
-            const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
+            const contenedor = document.getElementById('contenedor-productos'); const barraSub = document.getElementById('barra-subcategorias');
+            contenedor.innerHTML = ''; const busqueda = document.getElementById('buscador-cliente').value.toLowerCase();
 
             if (busqueda !== "") {
-                const filtrados = BD_PRODUCTOS.filter(p => 
-                    p.nombre.toLowerCase().includes(busqueda) || 
-                    p.codigo.includes(busqueda) ||
-                    p.subcategoria.toLowerCase().includes(busqueda)
-                );
+                const filtrados = BD_PRODUCTOS.filter(p => p.nombre.toLowerCase().includes(busqueda) || p.codigo.includes(busqueda) || p.subcategoria.toLowerCase().includes(busqueda));
                 barraSub.classList.add('hidden');
-                if(filtrados.length === 0) {
-                    contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full";
-                    contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No encontramos productos con esa búsqueda.</p>`;
-                    return;
-                }
-                contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full";
-                filtrados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
-                actualizarIconoCarritoFlotante();
-                return;
+                if(filtrados.length === 0) { contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full"; contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No encontramos productos con esa búsqueda.</p>`; return; }
+                contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full"; filtrados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla')); actualizarIconoCarritoFlotante(); return;
             }
 
             if (categoriaSeleccionada === "TODOS" || categoriaSeleccionada === "PROMOS" || categoriaSeleccionada === "DESTACADOS") {
                 barraSub.classList.add('hidden');
                 contenedor.className = "pb-24 max-w-md mx-auto w-full flex flex-col gap-6 pt-2 animate-fade-in";
                 
-                const listaPromos = BD_PRODUCTOS.filter(p => esPromo(p));
-                const listaDestacados = BD_PRODUCTOS.filter(p => esDestacado(p));
+                const listaPromos = BD_PRODUCTOS.filter(p => esPromo(p)); const listaDestacados = BD_PRODUCTOS.filter(p => esDestacado(p));
                 
-                if(categoriaSeleccionada === "PROMOS") {
-                    contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
-                    listaPromos.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
-                    actualizarIconoCarritoFlotante();
-                    return; 
-                }
-
-                if(categoriaSeleccionada === "DESTACADOS") {
-                    contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
-                    listaDestacados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
-                    actualizarIconoCarritoFlotante();
-                    return; 
-                }
+                if(categoriaSeleccionada === "PROMOS") { contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in"; listaPromos.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla')); actualizarIconoCarritoFlotante(); return; }
+                if(categoriaSeleccionada === "DESTACADOS") { contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in"; listaDestacados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla')); actualizarIconoCarritoFlotante(); return; }
 
                 if(listaDestacados.length > 0 && categoriaSeleccionada === "TODOS") {
                     let htmlCarruselDestacados = `
@@ -615,16 +542,13 @@
                             <h2 class="text-lg font-black text-yellow-600 uppercase tracking-tight">⭐ DESTACADOS DEL LOCAL</h2>
                             <button onclick="seleccionarCategoria('DESTACADOS')" class="text-yellow-600 text-xs font-bold bg-yellow-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Ver todos</button>
                         </div>
-                        <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">
-                    `;
+                        <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">`;
                     listaDestacados.slice(0, 10).forEach(prod => { htmlCarruselDestacados += generarHTMLTarjeta(prod, 'carrusel'); });
                     htmlCarruselDestacados += `
                             <div onclick="seleccionarCategoria('DESTACADOS')" class="bg-yellow-50 rounded-2xl border border-yellow-100 p-2 flex flex-col items-center justify-center w-[140px] shrink-0 snap-start cursor-pointer active:scale-95 transition-transform h-auto min-h-[160px] mt-2 ml-2">
                                 <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3"><span class="text-xl">⭐</span></div>
                                 <span class="text-xs font-bold text-yellow-600 uppercase text-center">Ver todos</span>
-                            </div>
-                        </div>
-                    </div>`;
+                            </div></div></div>`;
                     contenedor.innerHTML += htmlCarruselDestacados;
                 }
 
@@ -635,16 +559,13 @@
                             <h2 class="text-lg font-black text-juani-red uppercase tracking-tight">🔥 PROMOS IMPERDIBLES</h2>
                             <button onclick="seleccionarCategoria('PROMOS')" class="text-juani-red text-xs font-bold bg-red-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Ver todas</button>
                         </div>
-                        <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">
-                    `;
+                        <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">`;
                     listaPromos.slice(0, 10).forEach(prod => { htmlCarruselPromos += generarHTMLTarjeta(prod, 'carrusel'); });
                     htmlCarruselPromos += `
                             <div onclick="seleccionarCategoria('PROMOS')" class="bg-red-50 rounded-2xl border border-red-100 p-2 flex flex-col items-center justify-center w-[140px] shrink-0 snap-start cursor-pointer active:scale-95 transition-transform h-auto min-h-[160px] mt-2 ml-2">
                                 <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3"><span class="text-xl">🔥</span></div>
                                 <span class="text-xs font-bold text-red-600 uppercase text-center">Ver todas</span>
-                            </div>
-                        </div>
-                    </div>`;
+                            </div></div></div>`;
                     contenedor.innerHTML += htmlCarruselPromos;
                 }
                 
@@ -652,14 +573,24 @@
                     const prodsCat = BD_PRODUCTOS.filter(p => p.categoria.toLowerCase() === cat.toLowerCase());
                     if(prodsCat.length > 0) {
                         const nombreRealCategoria = prodsCat[0].categoria;
+                        const catLimpia = cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        
+                        // ASIGNADOR DE EMOJIS DINÁMICO
+                        let icono = "🛒"; 
+                        if (catLimpia.includes('almacen')) icono = "🥫";
+                        if (catLimpia.includes('bebida') || catLimpia.includes('gaseosa')) icono = "🥤";
+                        if (catLimpia.includes('fiambre') || catLimpia.includes('queso') || catLimpia.includes('lacteo')) icono = "🧀";
+                        if (catLimpia.includes('fresco') || catLimpia.includes('verduleria')) icono = "🥬";
+                        if (catLimpia.includes('limpieza') || catLimpia.includes('perfumeria')) icono = "🧼";
+                        if (catLimpia.includes('kiosco') || catLimpia.includes('golosina') || catLimpia.includes('galletita')) icono = "🍪";
+
                         let htmlCarrusel = `
                         <div class="flex flex-col w-full">
                             <div class="flex justify-between items-end px-4 mb-3">
-                                <h2 class="text-lg font-black text-gray-800 uppercase tracking-tight">${nombreRealCategoria}</h2>
+                                <h2 class="text-lg font-black text-gray-800 uppercase tracking-tight">${icono} ${nombreRealCategoria}</h2>
                                 <button onclick="seleccionarCategoria('${nombreRealCategoria}')" class="text-juani-blue text-xs font-bold bg-blue-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Ver más</button>
                             </div>
-                            <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">
-                        `;
+                            <div class="flex overflow-x-auto hide-scroll gap-3 px-4 pb-2 snap-x">`;
                         prodsCat.slice(0, 8).forEach(prod => { htmlCarrusel += generarHTMLTarjeta(prod, 'carrusel'); });
                         htmlCarrusel += `
                                 <div onclick="seleccionarCategoria('${nombreRealCategoria}')" class="bg-gray-50 rounded-2xl border border-gray-200 p-2 flex flex-col items-center justify-center w-[140px] shrink-0 snap-start cursor-pointer active:scale-95 transition-transform h-auto min-h-[160px]">
@@ -667,576 +598,239 @@
                                         <svg class="w-6 h-6 text-juani-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                                     </div>
                                     <span class="text-xs font-bold text-gray-600 uppercase">Ver todos</span>
-                                </div>
-                            </div>
-                        </div>`;
+                                </div></div></div>`;
                         contenedor.innerHTML += htmlCarrusel;
                     }
                 });
-            } 
-            else {
+            } else {
                 let filtrados = BD_PRODUCTOS.filter(p => p.categoria.toLowerCase() === categoriaSeleccionada.toLowerCase());
-                barraSub.classList.remove('hidden');
-                renderizarBarraSubcategorias(filtrados);
-                if (subCategoriaSeleccionada !== "TODOS") {
-                    filtrados = filtrados.filter(p => p.subcategoria.toLowerCase() === subCategoriaSeleccionada.toLowerCase());
-                }
-                if(filtrados.length === 0) {
-                    contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full";
-                    contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No hay productos en esta sección.</p>`;
-                } else {
-                    contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in";
-                    filtrados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla'));
-                }
+                barraSub.classList.remove('hidden'); renderizarBarraSubcategorias(filtrados);
+                if (subCategoriaSeleccionada !== "TODOS") { filtrados = filtrados.filter(p => p.subcategoria.toLowerCase() === subCategoriaSeleccionada.toLowerCase()); }
+                if(filtrados.length === 0) { contenedor.className = "p-4 flex flex-col max-w-md mx-auto w-full"; contenedor.innerHTML = `<p class="text-center text-gray-400 text-xs mt-10">No hay productos en esta sección.</p>`; } 
+                else { contenedor.className = "p-4 grid grid-cols-2 gap-3 max-w-md mx-auto w-full animate-fade-in"; filtrados.forEach(prod => contenedor.innerHTML += generarHTMLTarjeta(prod, 'grilla')); }
             }
             actualizarIconoCarritoFlotante();
         }
 
         function seleccionarCategoria(cat, desdeHistorial = false) {
-            let categoriaAnterior = categoriaSeleccionada;
-            categoriaSeleccionada = cat;
-            subCategoriaSeleccionada = "TODOS";
-            document.getElementById('buscador-cliente').value = "";
-            renderizarBarraCategorias();
-            renderizarCatalogo();
+            let categoriaAnterior = categoriaSeleccionada; categoriaSeleccionada = cat; subCategoriaSeleccionada = "TODOS";
+            document.getElementById('buscador-cliente').value = ""; renderizarBarraCategorias(); renderizarCatalogo();
             if (!desdeHistorial) {
-                if (cat === 'TODOS') {
-                    if (categoriaAnterior !== 'TODOS') { history.pushState(null, '', window.location.pathname + window.location.search); }
-                } else {
-                    if (categoriaAnterior === 'TODOS') { history.pushState(null, '', '#cat-' + encodeURIComponent(cat)); } 
-                    else { history.replaceState(null, '', '#cat-' + encodeURIComponent(cat)); }
-                }
+                if (cat === 'TODOS') { if (categoriaAnterior !== 'TODOS') { history.pushState(null, '', window.location.pathname + window.location.search); } } 
+                else { if (categoriaAnterior === 'TODOS') { history.pushState(null, '', '#cat-' + encodeURIComponent(cat)); } else { history.replaceState(null, '', '#cat-' + encodeURIComponent(cat)); } }
             }
         }
 
         function filtrarCatalogo() { renderizarCatalogo(); }
 
         function abrirModalProducto(id) {
-            productoAbierto = BD_PRODUCTOS.find(p => p.id === id);
-            if(!productoAbierto) return;
-            const paso = obtenerPaso(productoAbierto);
-            cantTemporalModal = productoAbierto.cantidad > 0 ? productoAbierto.cantidad : paso;
+            productoAbierto = BD_PRODUCTOS.find(p => p.id === id); if(!productoAbierto) return;
+            const paso = obtenerPaso(productoAbierto); cantTemporalModal = productoAbierto.cantidad > 0 ? productoAbierto.cantidad : paso;
             document.getElementById('modal-titulo').innerText = productoAbierto.nombre;
             
             let textoPrecio = `Precio ${esPesable(productoAbierto) ? 'por Kilo' : 'por unidad'}: $${productoAbierto.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
-            if (productoAbierto.promo_cant > 0) {
-                textoPrecio += ` <span class="text-green-600 font-bold ml-1">(🔥 Llevá ${esPesable(productoAbierto) && productoAbierto.promo_cant < 1 ? (productoAbierto.promo_cant * 1000) + 'g' : productoAbierto.promo_cant} x $${productoAbierto.promo_precio.toLocaleString('es-AR')})</span>`;
-            }
+            if (productoAbierto.promo_cant > 0) { textoPrecio += ` <span class="text-green-600 font-bold ml-1">(🔥 Llevá ${esPesable(productoAbierto) && productoAbierto.promo_cant < 1 ? (productoAbierto.promo_cant * 1000) + 'g' : productoAbierto.promo_cant} x $${productoAbierto.promo_precio.toLocaleString('es-AR')})</span>`; }
             document.getElementById('modal-precio-unitario').innerHTML = textoPrecio;
             document.getElementById('modal-desc').innerText = productoAbierto.descripcion;
-            document.getElementById('modal-img-container').innerHTML = productoAbierto.imagen ? 
-                `<img id="img-vuelo-origen" src="${productoAbierto.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
-                `<div id="img-vuelo-origen" class="text-7xl text-gray-300">📦</div>`;
-            actualizarVistaTemporalModal();
-            document.getElementById('modal-producto').classList.remove('hidden');
-            history.pushState({ vista: 'producto' }, '', '#producto');
+            document.getElementById('modal-img-container').innerHTML = productoAbierto.imagen ? `<img id="img-vuelo-origen" src="${productoAbierto.imagen}" class="w-full h-full object-contain mix-blend-multiply">` : `<div id="img-vuelo-origen" class="text-7xl text-gray-300">📦</div>`;
+            actualizarVistaTemporalModal(); document.getElementById('modal-producto').classList.remove('hidden'); history.pushState({ vista: 'producto' }, '', '#producto');
         }
 
-        function cerrarModalProducto() {
-            if(window.location.hash === '#producto') { history.back(); } 
-            else { cerrarModalProductoVisualmente(); }
-        }
-
-        function cerrarModalProductoVisualmente() {
-            document.getElementById('modal-producto').classList.add('hidden');
-            productoAbierto = null;
-        }
+        function cerrarModalProducto() { if(window.location.hash === '#producto') { history.back(); } else { cerrarModalProductoVisualmente(); } }
+        function cerrarModalProductoVisualmente() { document.getElementById('modal-producto').classList.add('hidden'); productoAbierto = null; }
 
         function ajustarTempCant(cambio) {
-            const paso = obtenerPaso(productoAbierto);
-            let nueva = cantTemporalModal + (cambio * paso);
-            
-            if (!esPesable(productoAbierto)) nueva = Math.round(nueva);
-            else nueva = parseFloat(nueva.toFixed(2));
-
-            if (nueva > productoAbierto.stockDisponible) {
-                nueva = productoAbierto.stockDisponible;
-                mostrarToastStock(productoAbierto.stockDisponible + (esPesable(productoAbierto) ? " kg" : " u."));
-            }
-            if(nueva >= paso && nueva <= 999) { 
-                cantTemporalModal = nueva;
-                actualizarVistaTemporalModal();
-            } else if (nueva <= 0 && productoAbierto.cantidad > 0) {
-                cantTemporalModal = 0;
-                actualizarVistaTemporalModal();
-                document.getElementById('btn-confirmar-modal').innerHTML = `<span>Quitar del changuito</span><span class="text-xl">🗑️</span>`;
-            }
+            const paso = obtenerPaso(productoAbierto); let nueva = cantTemporalModal + (cambio * paso);
+            if (!esPesable(productoAbierto)) nueva = Math.round(nueva); else nueva = parseFloat(nueva.toFixed(2));
+            if (nueva > productoAbierto.stockDisponible) { nueva = productoAbierto.stockDisponible; mostrarToastStock(productoAbierto.stockDisponible + (esPesable(productoAbierto) ? " kg" : " u.")); }
+            if(nueva >= paso && nueva <= 999) { cantTemporalModal = nueva; actualizarVistaTemporalModal(); } 
+            else if (nueva <= 0 && productoAbierto.cantidad > 0) { cantTemporalModal = 0; actualizarVistaTemporalModal(); document.getElementById('btn-confirmar-modal').innerHTML = `<span>Quitar del changuito</span><span class="text-xl">🗑️</span>`; }
         }
 
         function ingresoManualModal(valorEscrito) {
-            let nueva = parseFloat(valorEscrito.replace(/,/g, '.'));
-            if(isNaN(nueva) || nueva < 0) nueva = 0;
-            
-            if (!esPesable(productoAbierto)) nueva = Math.round(nueva);
-            else nueva = parseFloat(nueva.toFixed(2));
-
+            let nueva = parseFloat(valorEscrito.replace(/,/g, '.')); if(isNaN(nueva) || nueva < 0) nueva = 0;
+            if (!esPesable(productoAbierto)) nueva = Math.round(nueva); else nueva = parseFloat(nueva.toFixed(2));
             if(nueva > 999) nueva = 999;
-            if (nueva > productoAbierto.stockDisponible) {
-                nueva = productoAbierto.stockDisponible;
-                mostrarToastStock(productoAbierto.stockDisponible);
-            }
-            cantTemporalModal = nueva;
-            actualizarVistaTemporalModal();
-            if (nueva === 0 && productoAbierto.cantidad > 0) {
-                document.getElementById('btn-confirmar-modal').innerHTML = `<span>Quitar del changuito</span><span class="text-xl">🗑️</span>`;
-            }
+            if (nueva > productoAbierto.stockDisponible) { nueva = productoAbierto.stockDisponible; mostrarToastStock(productoAbierto.stockDisponible); }
+            cantTemporalModal = nueva; actualizarVistaTemporalModal();
+            if (nueva === 0 && productoAbierto.cantidad > 0) { document.getElementById('btn-confirmar-modal').innerHTML = `<span>Quitar del changuito</span><span class="text-xl">🗑️</span>`; }
         }
 
         function actualizarVistaTemporalModal() {
-            document.getElementById('modal-temp-cant').value = cantTemporalModal;
-            let sub = 0;
+            document.getElementById('modal-temp-cant').value = cantTemporalModal; let sub = 0;
             if (productoAbierto.promo_cant > 0 && cantTemporalModal >= productoAbierto.promo_cant) {
-                let combos = Math.floor(cantTemporalModal / productoAbierto.promo_cant);
-                let sueltos = parseFloat((cantTemporalModal - (combos * productoAbierto.promo_cant)).toFixed(2));
+                let combos = Math.floor(cantTemporalModal / productoAbierto.promo_cant); let sueltos = parseFloat((cantTemporalModal - (combos * productoAbierto.promo_cant)).toFixed(2));
                 sub = (combos * productoAbierto.promo_precio) + (sueltos * productoAbierto.precio);
-            } else {
-                sub = cantTemporalModal * productoAbierto.precio;
-            }
+            } else { sub = cantTemporalModal * productoAbierto.precio; }
             const btnConfirmar = document.getElementById('btn-confirmar-modal');
-            if(cantTemporalModal > 0) {
-                btnConfirmar.innerHTML = `<span>Agregar al changuito</span><span class="font-black text-lg bg-white/20 px-3 py-1 rounded-lg">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>`;
-            }
+            if(cantTemporalModal > 0) { btnConfirmar.innerHTML = `<span>Agregar al changuito</span><span class="font-black text-lg bg-white/20 px-3 py-1 rounded-lg">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>`; }
         }
 
-        function confirmarAgregadoAlChango() {
-            productoAbierto.cantidad = cantTemporalModal;
-            guardarCarritoEnStorage();
-            if(cantTemporalModal > 0) { volarAlCarrito(); }
-            preciosVerificados = false; 
-            cerrarModalProducto(); 
-            renderizarCatalogo();
-        }
+        function confirmarAgregadoAlChango() { productoAbierto.cantidad = cantTemporalModal; guardarCarritoEnStorage(); if(cantTemporalModal > 0) { volarAlCarrito(); } preciosVerificados = false; cerrarModalProducto(); renderizarCatalogo(); }
 
         function volarAlCarrito() {
-            const imgOrigen = document.getElementById('img-vuelo-origen');
-            const iconDestino = document.getElementById('btn-carrito-flotante');
-            if(!imgOrigen || !iconDestino) return;
-            const rectOrigen = imgOrigen.getBoundingClientRect();
-            const rectDestino = iconDestino.getBoundingClientRect();
-            const clon = imgOrigen.cloneNode(true);
+            const imgOrigen = document.getElementById('img-vuelo-origen'); const iconDestino = document.getElementById('btn-carrito-flotante'); if(!imgOrigen || !iconDestino) return;
+            const rectOrigen = imgOrigen.getBoundingClientRect(); const rectDestino = iconDestino.getBoundingClientRect(); const clon = imgOrigen.cloneNode(true);
             clon.classList.add('flying-item');
-            if(clon.tagName === 'DIV') {
-                clon.style.width = rectOrigen.width + 'px';
-                clon.style.height = rectOrigen.height + 'px';
-                clon.style.display = 'flex';
-                clon.style.alignItems = 'center';
-                clon.style.justifyContent = 'center';
-                clon.style.backgroundColor = 'white';
-            }
-            clon.style.top = rectOrigen.top + 'px';
-            clon.style.left = rectOrigen.left + 'px';
-            clon.style.width = rectOrigen.width + 'px';
-            clon.style.height = rectOrigen.height + 'px';
-            document.body.appendChild(clon);
-            void clon.offsetWidth; 
-            clon.style.top = (rectDestino.top + (rectDestino.height / 2) - 10) + 'px';
-            clon.style.left = (rectDestino.left + (rectDestino.width / 2) - 10) + 'px';
-            clon.style.width = '20px';
-            clon.style.height = '20px';
-            clon.style.opacity = '0.2';
-            setTimeout(() => {
-                clon.remove();
-                iconDestino.classList.add('animate-pop');
-                setTimeout(() => iconDestino.classList.remove('animate-pop'), 300);
-                actualizarIconoCarritoFlotante();
-            }, 600);
+            if(clon.tagName === 'DIV') { clon.style.width = rectOrigen.width + 'px'; clon.style.height = rectOrigen.height + 'px'; clon.style.display = 'flex'; clon.style.alignItems = 'center'; clon.style.justifyContent = 'center'; clon.style.backgroundColor = 'white'; }
+            clon.style.top = rectOrigen.top + 'px'; clon.style.left = rectOrigen.left + 'px'; clon.style.width = rectOrigen.width + 'px'; clon.style.height = rectOrigen.height + 'px';
+            document.body.appendChild(clon); void clon.offsetWidth; 
+            clon.style.top = (rectDestino.top + (rectDestino.height / 2) - 10) + 'px'; clon.style.left = (rectDestino.left + (rectDestino.width / 2) - 10) + 'px'; clon.style.width = '20px'; clon.style.height = '20px'; clon.style.opacity = '0.2';
+            setTimeout(() => { clon.remove(); iconDestino.classList.add('animate-pop'); setTimeout(() => iconDestino.classList.remove('animate-pop'), 300); actualizarIconoCarritoFlotante(); }, 600);
         }
 
         function actualizarIconoCarritoFlotante() {
-            let totalLineas = BD_PRODUCTOS.filter(p => p.cantidad > 0).length;
-            const badge = document.getElementById('badge-carrito');
-            if(totalLineas > 0) {
-                badge.innerText = totalLineas;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
+            let totalLineas = BD_PRODUCTOS.filter(p => p.cantidad > 0).length; const badge = document.getElementById('badge-carrito');
+            if(totalLineas > 0) { badge.innerText = totalLineas; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
         }
 
         function abrirPantallaCarrito() {
-            document.getElementById('pantalla-catalogo').classList.add('hidden');
-            document.getElementById('btn-carrito-flotante').classList.add('hidden');
-            document.getElementById('pantalla-carrito').classList.remove('hidden');
-            renderizarListaCheckout();
-            window.scrollTo(0,0);
-            history.pushState({ vista: 'carrito' }, '', '#carrito');
+            document.getElementById('pantalla-catalogo').classList.add('hidden'); document.getElementById('btn-carrito-flotante').classList.add('hidden');
+            document.getElementById('pantalla-carrito').classList.remove('hidden'); renderizarListaCheckout(); window.scrollTo(0,0); history.pushState({ vista: 'carrito' }, '', '#carrito');
         }
 
-        function cerrarPantallaCarrito() {
-            if(window.location.hash === '#carrito') { history.back(); } 
-            else { cerrarCarritoVisualmente(); }
-        }
-
-        function cerrarCarritoVisualmente() {
-            document.getElementById('pantalla-carrito').classList.add('hidden');
-            document.getElementById('pantalla-catalogo').classList.remove('hidden');
-            document.getElementById('btn-carrito-flotante').classList.remove('hidden');
-            renderizarCatalogo();
-        }
-
+        function cerrarPantallaCarrito() { if(window.location.hash === '#carrito') { history.back(); } else { cerrarCarritoVisualmente(); } }
+        function cerrarCarritoVisualmente() { document.getElementById('pantalla-carrito').classList.add('hidden'); document.getElementById('pantalla-catalogo').classList.remove('hidden'); document.getElementById('btn-carrito-flotante').classList.remove('hidden'); renderizarCatalogo(); }
         function vaciarCarrito() { document.getElementById('modal-vaciar-carrito').classList.remove('hidden'); }
         function cerrarModalVaciar() { document.getElementById('modal-vaciar-carrito').classList.add('hidden'); }
 
-        function confirmarVaciarCarrito() {
-            BD_PRODUCTOS.forEach(p => p.cantidad = 0);
-            preciosVerificados = false; 
-            guardarCarritoEnStorage();
-            renderizarListaCheckout();
-            actualizarIconoCarritoFlotante();
-            cerrarModalVaciar(); 
-        }
+        function confirmarVaciarCarrito() { BD_PRODUCTOS.forEach(p => p.cantidad = 0); preciosVerificados = false; guardarCarritoEnStorage(); renderizarListaCheckout(); actualizarIconoCarritoFlotante(); cerrarModalVaciar(); }
 
         function setEntrega(modo) {
-            modoEntrega = modo;
-            const btnRetiro = document.getElementById('btn-retiro');
-            const btnEnvio = document.getElementById('btn-envio');
-            const divDir = document.getElementById('div-direccion');
-            if(modo === 'envio') {
-                btnEnvio.className = "bg-juani-blue text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-juani-blue transition-colors";
-                btnRetiro.className = "bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors";
-                divDir.classList.remove('hidden');
-            } else {
-                btnRetiro.className = "bg-juani-blue text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-juani-blue transition-colors";
-                btnEnvio.className = "bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors";
-                divDir.classList.add('hidden');
-            }
+            modoEntrega = modo; const btnRetiro = document.getElementById('btn-retiro'); const btnEnvio = document.getElementById('btn-envio'); const divDir = document.getElementById('div-direccion');
+            if(modo === 'envio') { btnEnvio.className = "bg-juani-blue text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-juani-blue transition-colors"; btnRetiro.className = "bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors"; divDir.classList.remove('hidden'); } 
+            else { btnRetiro.className = "bg-juani-blue text-white font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-juani-blue transition-colors"; btnEnvio.className = "bg-white text-gray-600 font-bold py-2.5 rounded-xl text-xs uppercase shadow-sm border border-gray-200 transition-colors"; divDir.classList.add('hidden'); }
         }
 
         function setPago() { actualizarTotalFinal(); }
 
         function actualizarTotalFinal() {
-            const selectPago = document.getElementById('select-pago');
-            const metodoPago = selectPago.value;
-            
-            let descuentoCombos = calcularDescuentoCombos();
-            let total = subtotalCarritoPuro - descuentoCombos;
-            if(total < 0) total = 0;
-
+            const selectPago = document.getElementById('select-pago'); const metodoPago = selectPago.value; let descuentoCombos = calcularDescuentoCombos(); let total = subtotalCarritoPuro - descuentoCombos; if(total < 0) total = 0;
             let textoFinal = '';
-            if (metodoPago === 'credito') {
-                const recargo = total * 0.10;
-                total += recargo;
-                textoFinal = `<span class="text-sm text-gray-400 font-normal mr-2 line-through">$${(subtotalCarritoPuro - descuentoCombos).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span> $${total.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
-            } else {
-                textoFinal = `$${total.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
-            }
+            if (metodoPago === 'credito') { const recargo = total * 0.10; total += recargo; textoFinal = `<span class="text-sm text-gray-400 font-normal mr-2 line-through">$${(subtotalCarritoPuro - descuentoCombos).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span> $${total.toLocaleString('es-AR', {minimumFractionDigits: 2})}`; } 
+            else { textoFinal = `$${total.toLocaleString('es-AR', {minimumFractionDigits: 2})}`; }
             document.getElementById('checkout-total').innerHTML = textoFinal;
         }
 
         function renderizarListaCheckout() {
-            const divCarrito = document.getElementById('lista-carrito-checkout');
-            const panelOpciones = document.getElementById('panel-opciones-compra');
-            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
-            subtotalCarritoPuro = 0; 
-            divCarrito.innerHTML = '';
-
-            if(carrito.length === 0) {
-                divCarrito.innerHTML = `
-                <div class="text-center py-20">
-                    <span class="text-6xl mb-4 block">🛒</span>
-                    <h3 class="text-gray-500 font-bold text-lg">El changuito está vacío</h3>
-                    <p class="text-gray-400 text-sm mt-2 mb-6">Aprovechá las ofertas de hoy.</p>
-                    <button onclick="cerrarPantallaCarrito()" class="bg-blue-50 text-juani-blue font-bold px-6 py-3 rounded-xl border border-blue-100">Volver a comprar</button>
-                </div>`;
-                panelOpciones.classList.add('hidden'); 
-                document.getElementById('checkout-total').innerText = "$0,00";
-                return;
-            }
-
+            const divCarrito = document.getElementById('lista-carrito-checkout'); const panelOpciones = document.getElementById('panel-opciones-compra'); const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0); subtotalCarritoPuro = 0; divCarrito.innerHTML = '';
+            if(carrito.length === 0) { divCarrito.innerHTML = `<div class="text-center py-20"><span class="text-6xl mb-4 block">🛒</span><h3 class="text-gray-500 font-bold text-lg">El changuito está vacío</h3><p class="text-gray-400 text-sm mt-2 mb-6">Aprovechá las ofertas de hoy.</p><button onclick="cerrarPantallaCarrito()" class="bg-blue-50 text-juani-blue font-bold px-6 py-3 rounded-xl border border-blue-100">Volver a comprar</button></div>`; panelOpciones.classList.add('hidden'); document.getElementById('checkout-total').innerText = "$0,00"; return; }
             panelOpciones.classList.remove('hidden'); 
-
             carrito.forEach(prod => {
-                let sub = 0;
-                let textoPromo = '';
-                if (prod.promo_cant > 0 && prod.cantidad >= prod.promo_cant) {
-                    let combos = Math.floor(prod.cantidad / prod.promo_cant);
-                    let sueltos = parseFloat((prod.cantidad - (combos * prod.promo_cant)).toFixed(2));
-                    sub = (combos * prod.promo_precio) + (sueltos * prod.precio);
-                    textoPromo = `<span class="bg-green-100 text-green-700 text-[9px] font-black px-1.5 py-0.5 rounded-md ml-1 align-middle">PROMO</span>`;
-                } else {
-                    sub = prod.precio * prod.cantidad;
-                }
+                let sub = 0; let textoPromo = '';
+                if (prod.promo_cant > 0 && prod.cantidad >= prod.promo_cant) { let combos = Math.floor(prod.cantidad / prod.promo_cant); let sueltos = parseFloat((prod.cantidad - (combos * prod.promo_cant)).toFixed(2)); sub = (combos * prod.promo_precio) + (sueltos * prod.precio); textoPromo = `<span class="bg-green-100 text-green-700 text-[9px] font-black px-1.5 py-0.5 rounded-md ml-1 align-middle">PROMO</span>`; } 
+                else { sub = prod.precio * prod.cantidad; }
                 subtotalCarritoPuro += sub;
-
-                const elementoImagen = prod.imagen ? 
-                    `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` :
-                    `<div class="text-xl text-gray-300">📦</div>`;
-
-                divCarrito.innerHTML += `
-                <div class="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm relative">
-                    <button onclick="eliminarProductoIndividual(${prod.id})" class="absolute top-2 right-2 text-red-500 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-colors active:scale-90 z-10">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                    <div class="w-20 h-20 bg-gray-50 rounded-xl flex items-center justify-center p-2 shrink-0 border border-gray-50">
-                        ${elementoImagen}
-                    </div>
-                    <div class="flex-1 pr-8">
-                        <h4 class="text-sm font-bold text-gray-800 leading-tight uppercase line-clamp-2">${prod.nombre} ${textoPromo}</h4>
-                        <div class="flex items-center justify-between mt-3">
-                            <span class="text-lg font-black text-juani-blue">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
-                            <div class="flex items-center bg-gray-50 rounded-xl border border-gray-200 p-1 shadow-inner">
-                                <button onclick="modificarEnCheckout(${prod.id}, -1)" class="w-10 h-10 rounded-lg bg-white text-juani-blue shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">-</button>
-                                <input type="text" inputmode="decimal" value="${prod.cantidad}" onchange="ingresoManualCheckout(${prod.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur();" class="font-black text-gray-800 text-base w-14 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0">
-                                <button onclick="modificarEnCheckout(${prod.id}, 1)" class="w-10 h-10 rounded-lg bg-juani-blue text-white shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">+</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
+                const elementoImagen = prod.imagen ? `<img src="${prod.imagen}" class="w-full h-full object-contain mix-blend-multiply">` : `<div class="text-xl text-gray-300">📦</div>`;
+                divCarrito.innerHTML += `<div class="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm relative"><button onclick="eliminarProductoIndividual(${prod.id})" class="absolute top-2 right-2 text-red-500 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-colors active:scale-90 z-10"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button><div class="w-20 h-20 bg-gray-50 rounded-xl flex items-center justify-center p-2 shrink-0 border border-gray-50">${elementoImagen}</div><div class="flex-1 pr-8"><h4 class="text-sm font-bold text-gray-800 leading-tight uppercase line-clamp-2">${prod.nombre} ${textoPromo}</h4><div class="flex items-center justify-between mt-3"><span class="text-lg font-black text-juani-blue">$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span><div class="flex items-center bg-gray-50 rounded-xl border border-gray-200 p-1 shadow-inner"><button onclick="modificarEnCheckout(${prod.id}, -1)" class="w-10 h-10 rounded-lg bg-white text-juani-blue shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">-</button><input type="text" inputmode="decimal" value="${prod.cantidad}" onchange="ingresoManualCheckout(${prod.id}, this.value)" onkeydown="if(event.key==='Enter') this.blur();" class="font-black text-gray-800 text-base w-14 text-center bg-transparent border-none outline-none focus:ring-0 p-0 m-0"><button onclick="modificarEnCheckout(${prod.id}, 1)" class="w-10 h-10 rounded-lg bg-juani-blue text-white shadow-sm flex items-center justify-center text-2xl font-black active:scale-95">+</button></div></div></div></div>`;
             });
-
             let descCombos = calcularDescuentoCombos();
-            if (descCombos > 0) {
-                divCarrito.innerHTML += `
-                <div class="bg-green-50 border border-green-200 rounded-xl p-3 flex justify-between items-center text-green-800 text-sm font-bold shadow-sm">
-                    <span>🎉 ¡Combos en Pareja Activados!</span>
-                    <span>-$${descCombos.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
-                </div>`;
-            }
+            if (descCombos > 0) { divCarrito.innerHTML += `<div class="bg-green-50 border border-green-200 rounded-xl p-3 flex justify-between items-center text-green-800 text-sm font-bold shadow-sm"><span>🎉 ¡Combos en Pareja Activados!</span><span>-$${descCombos.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span></div>`; }
             actualizarTotalFinal(); 
         }
 
         function modificarEnCheckout(id, cambio) {
             const index = BD_PRODUCTOS.findIndex(p => p.id === id);
             if(index !== -1) {
-                const prod = BD_PRODUCTOS[index];
-                const paso = obtenerPaso(prod);
-                let nuevaCant = prod.cantidad + (cambio * paso);
-                
-                if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
-                else nuevaCant = parseFloat(nuevaCant.toFixed(2));
-
-                if (nuevaCant > prod.stockDisponible) {
-                    nuevaCant = prod.stockDisponible;
-                    mostrarToastStock(prod.stockDisponible + (esPesable(prod) ? " kg" : " u."));
-                }
-                if(nuevaCant >= 0 && nuevaCant <= 999) {
-                    prod.cantidad = nuevaCant;
-                    preciosVerificados = false; 
-                    guardarCarritoEnStorage();
-                    renderizarListaCheckout(); 
-                    actualizarIconoCarritoFlotante();
-                }
+                const prod = BD_PRODUCTOS[index]; const paso = obtenerPaso(prod); let nuevaCant = prod.cantidad + (cambio * paso);
+                if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant); else nuevaCant = parseFloat(nuevaCant.toFixed(2));
+                if (nuevaCant > prod.stockDisponible) { nuevaCant = prod.stockDisponible; mostrarToastStock(prod.stockDisponible + (esPesable(prod) ? " kg" : " u.")); }
+                if(nuevaCant >= 0 && nuevaCant <= 999) { prod.cantidad = nuevaCant; preciosVerificados = false; guardarCarritoEnStorage(); renderizarListaCheckout(); actualizarIconoCarritoFlotante(); }
             }
         }
 
         function ingresoManualCheckout(id, valorEscrito) {
             const index = BD_PRODUCTOS.findIndex(p => p.id === id);
             if(index !== -1) {
-                const prod = BD_PRODUCTOS[index];
-                let nuevaCant = parseFloat(valorEscrito.replace(/,/g, '.'));
-                if(isNaN(nuevaCant) || nuevaCant < 0) nuevaCant = 0;
-                
-                if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant);
-                else nuevaCant = parseFloat(nuevaCant.toFixed(2));
-
-                if (nuevaCant > prod.stockDisponible) {
-                    nuevaCant = prod.stockDisponible;
-                    mostrarToastStock(prod.stockDisponible);
-                }
-                prod.cantidad = nuevaCant;
-                preciosVerificados = false; 
-                guardarCarritoEnStorage();
-                renderizarListaCheckout(); 
-                actualizarIconoCarritoFlotante();
+                const prod = BD_PRODUCTOS[index]; let nuevaCant = parseFloat(valorEscrito.replace(/,/g, '.')); if(isNaN(nuevaCant) || nuevaCant < 0) nuevaCant = 0;
+                if (!esPesable(prod)) nuevaCant = Math.round(nuevaCant); else nuevaCant = parseFloat(nuevaCant.toFixed(2));
+                if (nuevaCant > prod.stockDisponible) { nuevaCant = prod.stockDisponible; mostrarToastStock(prod.stockDisponible); }
+                prod.cantidad = nuevaCant; preciosVerificados = false; guardarCarritoEnStorage(); renderizarListaCheckout(); actualizarIconoCarritoFlotante();
             }
         }
 
-        function eliminarProductoIndividual(id) {
-            const index = BD_PRODUCTOS.findIndex(p => p.id === id);
-            if (index !== -1) {
-                BD_PRODUCTOS[index].cantidad = 0;
-                preciosVerificados = false; 
-                guardarCarritoEnStorage();
-                renderizarListaCheckout(); 
-                actualizarIconoCarritoFlotante();
-            }
-        }
+        function eliminarProductoIndividual(id) { const index = BD_PRODUCTOS.findIndex(p => p.id === id); if (index !== -1) { BD_PRODUCTOS[index].cantidad = 0; preciosVerificados = false; guardarCarritoEnStorage(); renderizarListaCheckout(); actualizarIconoCarritoFlotante(); } }
 
         function estaAbierto() {
-            const ahora = new Date();
-            const hora = ahora.getHours();
-            const minutos = ahora.getMinutes();
-            const tiempoMilitar = hora + (minutos / 60);
-            const abiertoMañana = tiempoMilitar >= 9 && tiempoMilitar < 13;
-            const abiertoTarde = tiempoMilitar >= 17 && tiempoMilitar < 20.5;
+            const ahora = new Date(); const hora = ahora.getHours(); const minutos = ahora.getMinutes(); const tiempoMilitar = hora + (minutos / 60);
+            const abiertoMañana = tiempoMilitar >= 9 && tiempoMilitar < 13; const abiertoTarde = tiempoMilitar >= 17 && tiempoMilitar < 20.5;
             return abiertoMañana || abiertoTarde;
         }
 
-        function verificarHorarioYDisparar() {
-            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
-            if(carrito.length === 0) return;
-            if (estaAbierto()) procesarYEnviarPedido();
-            else document.getElementById('modal-fuera-horario').classList.remove('hidden');
-        }
-
+        function verificarHorarioYDisparar() { const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0); if(carrito.length === 0) return; if (estaAbierto()) procesarYEnviarPedido(); else document.getElementById('modal-fuera-horario').classList.remove('hidden'); }
         function cerrarModalHorario() { document.getElementById('modal-fuera-horario').classList.add('hidden'); }
         function forzarEnvioPedido() { cerrarModalHorario(); procesarYEnviarPedido(); }
 
-        // =========================================================
-        // EL SUPER GUARDIÁN: VERIFICA PRECIO Y STOCK
-        // =========================================================
         async function procesarYEnviarPedido() {
-            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
-            if(carrito.length === 0) return;
-
-            if (preciosVerificados) {
-                abrirPantallaTicketOpcion2(carrito);
-                return;
-            }
-
-            const btn = document.getElementById('btn-confirmar-pedido');
-            const textoOriginal = btn.innerHTML;
-            btn.innerHTML = `<span class="animate-spin text-xl inline-block mr-2">⏳</span> Verificando carrito...`;
-            btn.disabled = true;
+            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0); if(carrito.length === 0) return;
+            if (preciosVerificados) { abrirPantallaTicketOpcion2(carrito); return; }
+            const btn = document.getElementById('btn-confirmar-pedido'); const textoOriginal = btn.innerHTML; btn.innerHTML = `<span class="animate-spin text-xl inline-block mr-2">⏳</span> Verificando carrito...`; btn.disabled = true;
 
             try {
-                const urlFresca = URL_CSV_PLANILLA + "&t=" + new Date().getTime();
-                const respuesta = await fetch(urlFresca);
-                const textoCSV = await respuesta.text();
-                
-                let huboCambiosPrecio = false;
-                let huboCambiosStock = false;
+                const urlFresca = URL_CSV_PLANILLA + "&t=" + new Date().getTime(); const respuesta = await fetch(urlFresca); const textoCSV = await respuesta.text();
+                let huboCambiosPrecio = false; let huboCambiosStock = false;
 
                 Papa.parse(textoCSV, {
-                    header: true, skipEmptyLines: true,
-                    transformHeader: function(header) { return header.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); },
+                    header: true, skipEmptyLines: true, transformHeader: function(header) { return header.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); },
                     complete: function(results) {
                         const datosFrescos = results.data;
-                        
                         carrito.forEach(itemChango => {
                             const itemFresco = datosFrescos.find(f => String(f.codigo).trim() === String(itemChango.codigo).trim());
                             if(itemFresco) {
-                                // 1. Verificar Precio
-                                if(itemFresco.precio) {
-                                    const precioFresco = limpiarNumeroArgento(itemFresco.precio);
-                                    if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) {
-                                        itemChango.precio = precioFresco;
-                                        huboCambiosPrecio = true;
-                                    }
-                                }
-                                
-                                // 2. Verificar Stock
-                                let stockFresco = 9999;
-                                if(itemFresco.stock && String(itemFresco.stock).trim() !== '') {
-                                    stockFresco = limpiarNumeroArgento(itemFresco.stock);
-                                }
-                                
-                                // Actualizamos la memoria del producto por si la doña quiere sumar más después
+                                if(itemFresco.precio) { const precioFresco = limpiarNumeroArgento(itemFresco.precio); if(!isNaN(precioFresco) && precioFresco !== itemChango.precio) { itemChango.precio = precioFresco; huboCambiosPrecio = true; } }
+                                let stockFresco = 9999; if(itemFresco.stock && String(itemFresco.stock).trim() !== '') { stockFresco = limpiarNumeroArgento(itemFresco.stock); }
                                 itemChango.stockDisponible = stockFresco;
-
-                                // Si me pide más de lo que tengo, lo bajo de un hondazo
-                                if(itemChango.cantidad > stockFresco) {
-                                    itemChango.cantidad = stockFresco; // Si no hay nada, baja a 0
-                                    huboCambiosStock = true;
-                                }
+                                if(itemChango.cantidad > stockFresco) { itemChango.cantidad = stockFresco; huboCambiosStock = true; }
                             }
                         });
                         
-                        btn.innerHTML = textoOriginal;
-                        btn.disabled = false;
-                        
-                        let huboCambiosTotales = huboCambiosPrecio || huboCambiosStock;
+                        btn.innerHTML = textoOriginal; btn.disabled = false; let huboCambiosTotales = huboCambiosPrecio || huboCambiosStock;
 
                         if(huboCambiosTotales) {
-                            preciosVerificados = true; 
-                            guardarCarritoEnStorage();
-                            renderizarListaCheckout(); 
-                            actualizarIconoCarritoFlotante(); 
-                            
-                            // Adaptar el mensaje del cartel para que sea clarito
-                            const tituloModal = document.getElementById('modal-aviso-titulo');
-                            const textoModal = document.getElementById('modal-aviso-texto');
-                            
-                            if(huboCambiosPrecio && huboCambiosStock) {
-                                tituloModal.innerText = "Precios y Stock Actualizados";
-                                textoModal.innerText = "Doña, algunos productos cambiaron de precio y otros se quedaron sin stock suficiente mientras armaba el pedido. Le acomodamos el changuito a lo que hay disponible para que lo revise.";
-                            } else if (huboCambiosStock) {
-                                tituloModal.innerText = "¡Falta de Stock!";
-                                textoModal.innerText = "Doña, alguien se nos adelantó y nos quedamos sin stock suficiente de algo que pidió. Le ajustamos las cantidades a lo que nos queda en góndola.";
-                            } else {
-                                tituloModal.innerText = "Precios Actualizados";
-                                textoModal.innerText = "Doña, algunos productos cambiaron de precio. Ya le corregimos los valores en su carrito para que los revise.";
-                            }
-
+                            preciosVerificados = true; guardarCarritoEnStorage(); renderizarListaCheckout(); actualizarIconoCarritoFlotante(); 
+                            const tituloModal = document.getElementById('modal-aviso-titulo'); const textoModal = document.getElementById('modal-aviso-texto');
+                            if(huboCambiosPrecio && huboCambiosStock) { tituloModal.innerText = "Precios y Stock Actualizados"; textoModal.innerText = "Doña, algunos productos cambiaron de precio y otros se quedaron sin stock suficiente mientras armaba el pedido. Le acomodamos el changuito a lo que hay disponible para que lo revise."; } 
+                            else if (huboCambiosStock) { tituloModal.innerText = "¡Falta de Stock!"; textoModal.innerText = "Doña, alguien se nos adelantó y nos quedamos sin stock suficiente de algo que pidió. Le ajustamos las cantidades a lo que nos queda en góndola."; } 
+                            else { tituloModal.innerText = "Precios Actualizados"; textoModal.innerText = "Doña, algunos productos cambiaron de precio. Ya le corregimos los valores en su carrito para que los revise."; }
                             document.getElementById('modal-aviso-precio').classList.remove('hidden');
-                        } else {
-                            abrirPantallaTicketOpcion2(carrito);
-                        }
+                        } else { abrirPantallaTicketOpcion2(carrito); }
                     }
                 });
-            } catch (error) {
-                btn.innerHTML = textoOriginal;
-                btn.disabled = false;
-                abrirPantallaTicketOpcion2(carrito);
-            }
+            } catch (error) { btn.innerHTML = textoOriginal; btn.disabled = false; abrirPantallaTicketOpcion2(carrito); }
         }
 
-        function cerrarAvisoPrecio() { 
-            document.getElementById('modal-aviso-precio').classList.add('hidden'); 
-        }
+        function cerrarAvisoPrecio() { document.getElementById('modal-aviso-precio').classList.add('hidden'); }
 
         function abrirPantallaTicketOpcion2(carrito) {
-            // Filtramos de nuevo por las dudas que algún producto haya quedado en cantidad 0 por falta de stock
-            const carritoReal = BD_PRODUCTOS.filter(p => p.cantidad > 0);
-            if(carritoReal.length === 0) return;
-
-            const ahora = new Date();
-            document.getElementById('ticket-fecha-hora').innerText = `Fecha: ${ahora.toLocaleDateString()} ${ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-            
-            const listDiv = document.getElementById('ticket-items-list');
-            listDiv.innerHTML = '';
+            const carritoReal = BD_PRODUCTOS.filter(p => p.cantidad > 0); if(carritoReal.length === 0) return;
+            const ahora = new Date(); document.getElementById('ticket-fecha-hora').innerText = `Fecha: ${ahora.toLocaleDateString()} ${ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            const listDiv = document.getElementById('ticket-items-list'); listDiv.innerHTML = '';
             
             carritoReal.forEach(item => {
-                let sub = 0;
-                const UMED = esPesable(item) ? 'kg' : 'u.';
-                if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) {
-                    let combos = Math.floor(item.cantidad / item.promo_cant);
-                    let sueltos = parseFloat((item.cantidad - (combos * item.promo_cant)).toFixed(2));
-                    sub = (combos * item.promo_precio) + (sueltos * item.precio);
-                } else {
-                    sub = item.precio * item.cantidad;
-                }
-                listDiv.innerHTML += `
-                <div class="flex justify-between font-mono">
-                    <span class="max-w-[70%] text-left uppercase">${item.nombre} (${item.cantidad}${UMED})</span>
-                    <span>$${sub.toLocaleString('es-AR', {minimumFractionDigits:2})}</span>
-                </div>`;
+                let sub = 0; const UMED = esPesable(item) ? 'kg' : 'u.';
+                if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) { let combos = Math.floor(item.cantidad / item.promo_cant); let sueltos = parseFloat((item.cantidad - (combos * item.promo_cant)).toFixed(2)); sub = (combos * item.promo_precio) + (sueltos * item.precio); } 
+                else { sub = item.precio * item.cantidad; }
+                listDiv.innerHTML += `<div class="flex justify-between font-mono"><span class="max-w-[70%] text-left uppercase">${item.nombre} (${item.cantidad}${UMED})</span><span>$${sub.toLocaleString('es-AR', {minimumFractionDigits:2})}</span></div>`;
             });
 
             document.getElementById('tk-subtotal').innerText = `$${subtotalCarritoPuro.toLocaleString('es-AR', {minimumFractionDigits:2})}`;
-            
-            let descCombos = calcularDescuentoCombos();
-            const rowC = document.getElementById('tk-row-combos');
-            if(descCombos > 0) {
-                document.getElementById('tk-combos').innerText = `-$${descCombos.toLocaleString('es-AR', {minimumFractionDigits:2})}`;
-                rowC.classList.remove('hidden');
-            } else { rowC.classList.add('hidden'); }
+            let descCombos = calcularDescuentoCombos(); const rowC = document.getElementById('tk-row-combos');
+            if(descCombos > 0) { document.getElementById('tk-combos').innerText = `-$${descCombos.toLocaleString('es-AR', {minimumFractionDigits:2})}`; rowC.classList.remove('hidden'); } 
+            else { rowC.classList.add('hidden'); }
 
-            let baseTotal = subtotalCarritoPuro - descCombos;
-            if(baseTotal < 0) baseTotal = 0;
-
-            const selectPago = document.getElementById('select-pago');
-            const valPago = selectPago.value;
-            const rowR = document.getElementById('tk-row-recargo');
+            let baseTotal = subtotalCarritoPuro - descCombos; if(baseTotal < 0) baseTotal = 0;
+            const selectPago = document.getElementById('select-pago'); const valPago = selectPago.value; const rowR = document.getElementById('tk-row-recargo');
             
-            if(valPago === 'credito') {
-                let recargo = baseTotal * 0.10;
-                document.getElementById('tk-recargo').innerText = `+$${recargo.toLocaleString('es-AR', {minimumFractionDigits:2})}`;
-                baseTotal += recargo;
-                rowR.classList.remove('hidden');
-            } else { rowR.classList.add('hidden'); }
+            if(valPago === 'credito') { let recargo = baseTotal * 0.10; document.getElementById('tk-recargo').innerText = `+$${recargo.toLocaleString('es-AR', {minimumFractionDigits:2})}`; baseTotal += recargo; rowR.classList.remove('hidden'); } 
+            else { rowR.classList.add('hidden'); }
 
             document.getElementById('tk-total').innerText = `$${baseTotal.toLocaleString('es-AR', {minimumFractionDigits:2})}`;
             document.getElementById('tk-entrega').innerText = `📍 FORMA: ${modoEntrega === 'retiro' ? 'Retiro en local' : 'Envío a domicilio'}`;
             document.getElementById('tk-pago').innerText = `💳 PAGO: ${selectPago.options[selectPago.selectedIndex].text}`;
             
             const infoC = document.getElementById('tk-cliente-info');
-            if(modoEntrega === 'envio') {
-                const n = document.getElementById('input-nombre').value.trim() || 'No especificó';
-                const d = document.getElementById('input-direccion').value.trim() || 'No especificó';
-                infoC.innerHTML = `👤 RECIBE: ${n}<br>🏠 DIR: ${d}`;
-                infoC.classList.remove('hidden');
-            } else { infoC.classList.add('hidden'); }
+            if(modoEntrega === 'envio') { const n = document.getElementById('input-nombre').value.trim() || 'No especificó'; const d = document.getElementById('input-direccion').value.trim() || 'No especificó'; infoC.innerHTML = `👤 RECIBE: ${n}<br>🏠 DIR: ${d}`; infoC.classList.remove('hidden'); } 
+            else { infoC.classList.add('hidden'); }
 
             document.getElementById('pantalla-ticket-final').classList.remove('hidden');
         }
@@ -1245,68 +839,33 @@
 
         function descargarTicketPDF() {
             const elemento = document.getElementById('bloque-ticket-imprimible');
-            const opciones = {
-                margin: 0.5,
-                filename: 'Ticket-Autoservicio-Juani.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
+            const opciones = { margin: 0.5, filename: 'Ticket-Autoservicio-Juani.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
             html2pdf().set(opciones).from(elemento).save();
         }
 
         function enviarWhatsAppDefinitivo() {
-            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0);
-            let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`;
-            mensaje += `🛒 *MI CHANGUITO:*\n`;
+            const carrito = BD_PRODUCTOS.filter(p => p.cantidad > 0); let mensaje = `👋 *Hola Autoservicio Juani!* Quiero realizar el siguiente pedido:\n\n`; mensaje += `🛒 *MI CHANGUITO:*\n`;
             carrito.forEach(item => {
-                let sub = 0;
-                const unidadMedida = esPesable(item) ? 'kg' : 'unid.';
-                if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) {
-                    let combos = Math.floor(item.cantidad / item.promo_cant);
-                    let sueltos = parseFloat((item.cantidad - (combos * item.promo_cant)).toFixed(2));
-                    sub = (combos * item.promo_precio) + (sueltos * item.precio);
-                    mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} ${unidadMedida} (🔥 Promo) = *$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n`;
-                } else {
-                    sub = item.precio * item.cantidad; 
-                    mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} ${unidadMedida} x $${item.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})} = *$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n`;
-                }
+                let sub = 0; const unidadMedida = esPesable(item) ? 'kg' : 'unid.';
+                if (item.promo_cant > 0 && item.cantidad >= item.promo_cant) { let combos = Math.floor(item.cantidad / item.promo_cant); let sueltos = parseFloat((item.cantidad - (combos * item.promo_cant)).toFixed(2)); sub = (combos * item.promo_precio) + (sueltos * item.precio); mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} ${unidadMedida} (🔥 Promo) = *$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n`; } 
+                else { sub = item.precio * item.cantidad; mensaje += `📦 *${item.nombre.toUpperCase()}*\n   ${item.cantidad} ${unidadMedida} x $${item.precio.toLocaleString('es-AR', {minimumFractionDigits: 2})} = *$${sub.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n`; }
             });
 
             let descCombos = calcularDescuentoCombos();
             if(descCombos > 0) mensaje += `🎁 *COMBOS AUTOMÁTICOS:* -$${descCombos.toLocaleString('es-AR', {minimumFractionDigits: 2})}\n\n`;
             mensaje += `🚚 *ENTREGA:* ${modoEntrega === 'retiro' ? 'Retiro en el local' : 'Envío a domicilio'}\n`;
-            if(modoEntrega === 'envio') {
-                const nombre = document.getElementById('input-nombre').value.trim() || 'No especificó';
-                const direccion = document.getElementById('input-direccion').value.trim() || 'No especificó';
-                mensaje += `👤 *Recibe:* ${nombre}\n📍 *Dirección:* ${direccion}\n`;
-            }
+            if(modoEntrega === 'envio') { const nombre = document.getElementById('input-nombre').value.trim() || 'No especificó'; const direccion = document.getElementById('input-direccion').value.trim() || 'No especificó'; mensaje += `👤 *Recibe:* ${nombre}\n📍 *Dirección:* ${direccion}\n`; }
 
-            const selectPago = document.getElementById('select-pago');
-            mensaje += `💳 *MEDIO DE PAGO:* ${selectPago.options[selectPago.selectedIndex].text}\n\n`;
-            
-            let totalFinal = subtotalCarritoPuro - descCombos;
-            if(totalFinal < 0) totalFinal = 0;
-            if(selectPago.value === 'credito') totalFinal = totalFinal * 1.10;
+            const selectPago = document.getElementById('select-pago'); mensaje += `💳 *MEDIO DE PAGO:* ${selectPago.options[selectPago.selectedIndex].text}\n\n`;
+            let totalFinal = subtotalCarritoPuro - descCombos; if(totalFinal < 0) totalFinal = 0; if(selectPago.value === 'credito') totalFinal = totalFinal * 1.10;
 
             mensaje += `💰 *TOTAL A PAGAR: $${totalFinal.toLocaleString('es-AR', {minimumFractionDigits: 2})}*\n\n*(Ya descargué mi ticket virtual en PDF 📄)*\n\n¿Tienen stock de todo, rey?`;
-            const NUMERO_TELEFONO_JUANI = "5491154841973"; 
-            window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank');
-            cerrarPantallaTicket();
+            const NUMERO_TELEFONO_JUANI = "5491154841973"; window.open(`https://wa.me/${NUMERO_TELEFONO_JUANI}?text=${encodeURIComponent(mensaje)}`, '_blank'); cerrarPantallaTicket();
         }
 
-        // MOTOR BANNERS
-        let currentSlide = 0;
-        const slides = document.querySelectorAll('.banner-slide');
-        function changeSlide() {
-            if(slides.length === 0) return;
-            slides[currentSlide].style.opacity = 0;
-            currentSlide = (currentSlide + 1) % slides.length;
-            slides[currentSlide].style.opacity = 1;
-        }
-        setInterval(changeSlide, 5000);
-
-        inicializarCatalogo();
+        let currentSlide = 0; const slides = document.querySelectorAll('.banner-slide');
+        function changeSlide() { if(slides.length === 0) return; slides[currentSlide].style.opacity = 0; currentSlide = (currentSlide + 1) % slides.length; slides[currentSlide].style.opacity = 1; }
+        setInterval(changeSlide, 5000); inicializarCatalogo();
     </script>
 </body>
 </html>
