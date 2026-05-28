@@ -419,8 +419,15 @@
             document.getElementById('modal-salir-app').classList.add('hidden'); 
         }
         function confirmarSalida() { 
-            history.go(-2); 
-            setTimeout(() => { window.close(); }, 300);
+            // Reemplazamos absolutamente todo lo que hay en la pantalla por un mensaje de despedida
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                    <span class="text-6xl mb-4 drop-shadow-md">🏪</span>
+                    <h1 class="text-2xl font-black text-blue-900 mb-2 uppercase tracking-wide">¡Gracias por tu visita!</h1>
+                    <p class="text-gray-500 font-bold text-sm">El changuito quedó guardado.</p>
+                    <p class="text-gray-400 text-xs mt-6 uppercase tracking-widest border border-gray-200 px-4 py-2 rounded-full">Ya podés cerrar la aplicación</p>
+                </div>
+            `;
         }
 
         async function inicializarCatalogo() {
