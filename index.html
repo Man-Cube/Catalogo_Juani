@@ -74,7 +74,7 @@
                         <p class="text-sm font-bold">¡Lunes a Viernes! Aprovechá los descuentos.</p>
                     </div>
                 </div>
-                <div class="banner-slide absolute inset-0 w-full h-full opacity-0 transition-opacity duration-1000">
+                <div class="banner-slide absolute inset-0 w-full h-full opacity-0 duration-1000">
                     <img src="https://images.unsplash.com/photo-1586741302818-3e5970331006?w=600&q=80" class="w-full h-full object-cover">
                     <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-4 text-center">
                         <h2 class="text-2xl font-black uppercase">¡Envío Gratis!</h2>
@@ -264,10 +264,8 @@
     </div>
 
     <script>
-        // INIT DE LA APP Y LA TRAMPA DEL BOTÓN ATRÁS
         window.addEventListener('load', () => { 
-            if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(e => {}); }
-            // Engañamos al navegador apenas carga la app para que el primer "atrás" no cierre la ventana
+            if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js?v=2026.05.29').catch(e => {}); }
             history.pushState({ trampa: 'activa' }, '', window.location.href);
         });
 
@@ -366,69 +364,40 @@
             setTimeout(() => { toast.classList.add('opacity-0'); }, 3500);
         }
 
-        // EL CEREBRO DE LA NAVEGACIÓN Y EL BOTÓN ATRÁS
+        // CONTROL NAVEGACIÓN ATRÁS
         window.addEventListener('popstate', function(event) {
-            // 1. Cierra cualquier cosa que flote arriba de todo
             if (!document.getElementById('modal-producto').classList.contains('hidden')) {
-                cerrarModalProductoVisualmente(); 
-                history.pushState(null, '', window.location.href);
-                return; 
+                cerrarModalProductoVisualmente(); history.pushState(null, '', window.location.href); return; 
             }
             if (!document.getElementById('modal-vaciar-carrito').classList.contains('hidden')) {
-                cerrarModalVaciar(); 
-                history.pushState(null, '', window.location.href);
-                return; 
+                cerrarModalVaciar(); history.pushState(null, '', window.location.href); return; 
             }
             if (!document.getElementById('pantalla-ticket-final').classList.contains('hidden')) {
-                cerrarPantallaTicket(); 
-                history.pushState(null, '', window.location.href);
-                return; 
+                cerrarPantallaTicket(); history.pushState(null, '', window.location.href); return; 
             }
             if (!document.getElementById('modal-salir-app').classList.contains('hidden')) {
-                cancelarSalida();
-                history.pushState(null, '', window.location.href);
-                return;
+                cancelarSalida(); history.pushState(null, '', window.location.href); return;
             }
 
             const hash = window.location.hash;
-            
-            // 2. Control de pantallas completas (Carrito vs Catálogo)
             if (hash === '#carrito') {
                 abrirPantallaCarrito(true);
             } else if (hash.startsWith('#cat-')) {
-                cerrarCarritoVisualmente(true);
-                seleccionarCategoria(decodeURIComponent(hash.replace('#cat-', '')), true);
+                cerrarCarritoVisualmente(true); seleccionarCategoria(decodeURIComponent(hash.replace('#cat-', '')), true);
             } else {
-                // Estaban en la raíz (Catálogo principal)
                 if (!document.getElementById('pantalla-carrito').classList.contains('hidden')) {
-                    // Si estaban en el changuito, vuelven al catálogo
                     cerrarCarritoVisualmente(true);
                 } else if (categoriaSeleccionada !== "TODOS") {
-                    // Si estaban mirando fiambres, vuelven a ver todo
                     seleccionarCategoria('TODOS', true);
                 } else {
-                    // TRAMPA ACTIVADA: ¡Están en la puerta de salida!
                     document.getElementById('modal-salir-app').classList.remove('hidden');
                     history.pushState(null, '', window.location.href);
                 }
             }
         });
 
-        // FUNCIONES DE SALIDA DE APP
-        function cancelarSalida() { 
-            document.getElementById('modal-salir-app').classList.add('hidden'); 
-        }
-        function confirmarSalida() { 
-            // Reemplazamos absolutamente todo lo que hay en la pantalla por un mensaje de despedida
-            document.body.innerHTML = `
-                <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                    <span class="text-6xl mb-4 drop-shadow-md">🏪</span>
-                    <h1 class="text-2xl font-black text-blue-900 mb-2 uppercase tracking-wide">¡Gracias por tu visita!</h1>
-                    <p class="text-gray-500 font-bold text-sm">El changuito quedó guardado.</p>
-                    <p class="text-gray-400 text-xs mt-6 uppercase tracking-widest border border-gray-200 px-4 py-2 rounded-full">Ya podés cerrar la aplicación</p>
-                </div>
-            `;
-        }
+        function cancelarSalida() { document.getElementById('modal-salir-app').classList.add('hidden'); }
+        function confirmarSalida() { document.getElementById('modal-salir-app').classList.add('hidden'); window.location.replace("https://www.google.com"); }
 
         async function inicializarCatalogo() {
             try {
@@ -438,9 +407,19 @@
                     header: true, skipEmptyLines: true,
                     transformHeader: function(header) { return header.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); },
                     complete: function(results) {
+                        
+                        // ==========================================
+                        // INYECCIÓN CRÍTICA: FILTRO DE VISIBILIDAD EN EXCEL
+                        // ==========================================
                         const productosDisponibles = results.data.filter(item => {
                             const stockRaw = item.stock ? String(item.stock).trim() : '';
-                            return stockRaw !== "0" && stockRaw !== "0.00" && stockRaw !== "0,00"; 
+                            const ocultarRaw = item.ocultar ? String(item.ocultar).trim().toLowerCase() : '';
+                            
+                            const tieneStock = stockRaw !== "0" && stockRaw !== "0.00" && stockRaw !== "0,00";
+                            const estaOculto = ocultarRaw === 'si' || ocultarRaw === 'sí' || ocultarRaw === 'x';
+                            
+                            // Para entrar a la app tiene que tener stock Y NO estar marcado para ocultar
+                            return tieneStock && !estaOculto; 
                         });
 
                         BD_PRODUCTOS = productosDisponibles.map((item, index) => {
@@ -832,7 +811,7 @@
         function eliminarProductoIndividual(id) { const index = BD_PRODUCTOS.findIndex(p => p.id === id); if (index !== -1) { BD_PRODUCTOS[index].cantidad = 0; preciosVerificados = false; guardarCarritoEnStorage(); renderizarListaCheckout(); actualizarIconoCarritoFlotante(); } }
 
         function estaAbierto() {
-            const ahora = new Date(); const hora = ahora.getHours(); const minutos = ahora.getMinutes(); const tiempoMilitar = hora + (minutos / 60);
+            const ahora = new Date(); const hora = ahora.getHours(); const minutes = ahora.getMinutes(); const tiempoMilitar = hora + (minutes / 60);
             const abiertoMañana = tiempoMilitar >= 9 && tiempoMilitar < 13; const abiertoTarde = tiempoMilitar >= 17 && tiempoMilitar < 20.5;
             return abiertoMañana || abiertoTarde;
         }
